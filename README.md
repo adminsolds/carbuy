@@ -1,175 +1,155 @@
-# Auto Auction Website
+﻿# SG AUTO TRADING（二手车交易平台）
 
-A full-stack used car auction platform built with React, Node.js, Express, and MySQL.
+基于 `React + Vite + Node.js + Express + Sequelize(SQLite)` 的前后端分离项目，支持直售、竞拍、后台车辆管理、用户管理、忘记密码等功能。
 
-## Features
+## 1. 功能概览
 
-- 🚗 Car Listings with Brand Filtering
-- 🔍 Search Functionality
-- 💰 Loan Calculator
-- 🔨 Auction/Bidding System
-- 👤 User Authentication (Login/Signup)
-- 📊 Bid Tracking
-- 📱 Responsive Design
+- 公共前台：主页、车辆列表、详情、贷款计算、Agent、登录/注册
+- 竞拍模式：仅从竞拍入口进入时启用，且受后台开关控制
+- 用户体系：注册、登录、个人竞拍跟踪、忘记密码/重置密码
+- 公司后台：
+  - 车辆库与车辆管理（增删改查、筛选、分页、状态管理）
+  - 注册用户管理（查询、改角色、删除）
+  - 系统设置（竞拍开关、邮件相关配置）
 
-## Tech Stack
+## 2. 技术栈
 
-- **Frontend**: React + Vite + TailwindCSS
-- **Backend**: Node.js + Express
-- **Database**: MySQL + Sequelize ORM
-- **Authentication**: JWT
+- 前端：`React`、`Vite`、`TailwindCSS`
+- 后端：`Node.js`、`Express`
+- 数据库：`SQLite`（`backend/database.sqlite`）
+- ORM：`Sequelize`
+- 认证：`JWT`
 
-## Getting Started
+## 3. 本地开发启动
 
-### Prerequisites
+### 3.1 安装依赖
 
-- Node.js (v16+)
-- MySQL (v8+)
+```bash
+cd backend
+npm install
 
-### Installation
-
-1. **Clone the repository**
-
-2. **Setup Database**
-   - Create a MySQL database named `auto_auction`
-   - Update `.env` with your MySQL credentials
-
-3. **Install Backend Dependencies**
-   ```bash
-   cd backend
-   npm install
-   ```
-
-4. **Install Frontend Dependencies**
-   ```bash
-   cd frontend
-   npm install
-   ```
-
-### Running the Application
-
-1. **Start Backend** (from /backend directory)
-   ```bash
-   npm run dev
-   ```
-   Server will run on http://localhost:5000
-
-2. **Start Frontend** (from /frontend directory)
-   ```bash
-   npm run dev
-   ```
-   App will run on http://localhost:3000
-
-### Environment Variables
-
-Backend `.env` file:
+cd ../frontend
+npm install
 ```
+
+### 3.2 后端环境变量（`backend/.env`）
+
+```env
 PORT=5000
 JWT_SECRET=your_secret_key_here
+JWT_EXPIRES_IN=24h
 ALLOW_PUBLIC_REGISTER=true
 AUCTION_ENABLED=false
 DEFAULT_SELLER_EMAIL=admin@sgautotrading.local
 DEFAULT_SELLER_PASSWORD=Admin@123456
 ```
 
-## Project Structure
+### 3.3 启动服务
 
-```
-├── backend/
-│   ├── src/
-│   │   ├── config/      # Database configuration
-│   │   ├── models/      # Sequelize models (User, Car, Bid)
-│   │   ├── routes/     # API routes (auth, cars, bids, loan)
-│   │   ├── middleware/   # Auth middleware
-│   │   └── index.js     # Entry point
-│   └── package.json
-│
-└── frontend/
-    ├── src/
-    │   ├── components/   # Reusable components (Header, Footer, CarCard)
-    │   ├── pages/        # Page components
-    │   ├── context/      # React context
-    │   └── App.jsx       # Main app component
-    └── package.json
+```bash
+# terminal 1
+cd backend
+npm run dev
+
+# terminal 2
+cd frontend
+npm run dev
 ```
 
-## API Endpoints
+- 前端：`http://127.0.0.1:3000`
+- 后端：`http://127.0.0.1:5000`
 
-### Authentication
-- `POST /api/auth/register` - Register public buyer user
-- `POST /api/auth/login` - Login user
-- `POST /api/auth/forgot-password` - Reset password by email
+## 4. 路由说明
 
-### Cars
-- `GET /api/cars` - List all cars (with filters)
-- `GET /api/cars/brands` - Get unique brands
-- `GET /api/cars/:id` - Get car details
-- `POST /api/cars` - Create car (seller role required)
-- `PUT /api/cars/:id` - Update car (seller role required)
-- `DELETE /api/cars/:id` - Delete car (seller role required)
+- 前台：
+  - `/`
+  - `/cars`
+  - `/cars/:id`
+  - `/auction`
+  - `/loan-calculator`
+  - `/agent`
+  - `/login`
+  - `/signup`
+  - `/forgot-password`
+- 需登录：
+  - `/tracking`
+- 管理后台（seller）：
+  - `/admin/cars`
+  - `/admin/users`
 
-### Bids
-- `POST /api/bids` - Place a bid (requires auth)
-- `GET /api/bids/car/:carId` - Get bids for a car
-- `GET /api/bids/me` - Get current user's bid tracking (requires auth)
+## 5. 核心业务规则
 
-### Loan Calculator
-- `POST /api/loan/calculate` - Calculate monthly payment
+- 默认入口（`/cars`）只展示直售车辆
+- 竞拍入口（`/auction`）仅在竞拍开关开启时展示竞拍车辆
+- 竞拍开关关闭时：
+  - 首页显示：`No auction vehicles at the moment, stay tuned!`
+  - 出价接口拒绝请求
 
-### Agent
-- `GET /api/agent` - Get agent list
+## 6. 主要 API
 
-### Settings
-- `GET /api/settings/public` - Get public feature flags
-- `GET /api/settings` - Get admin settings (seller auth required)
-- `PUT /api/settings/auction-enabled` - Enable/disable auction globally (seller auth required)
+### 认证
 
-### Admin (Seller Only)
-- `GET /api/admin/users` - List registered users with search/filter/sort/paging
-- `PUT /api/admin/users/:id/role` - Update user role (`buyer`/`seller`)
-- `DELETE /api/admin/users/:id` - Delete a user account
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/forgot-password`
+- `POST /api/auth/reset-password`
+- `POST /api/auth/change-password`
+- `GET /api/auth/me`
+- `PUT /api/auth/profile`
 
-`GET /api/cars` behavior:
-- Default (`entry=sale` or omitted): direct-sale vehicles only (no auction cars).
-- Auction entry (`entry=auction`): auction vehicles only, when `AUCTION_ENABLED=true`.
-- Admin listing can use `includeAuction=1` to manage all statuses.
+### 车辆
 
-## Seller/Admin API Usage
+- `GET /api/cars`
+- `GET /api/cars/brands`
+- `GET /api/cars/:id`
+- `POST /api/cars`（seller）
+- `PUT /api/cars/:id`（seller）
+- `DELETE /api/cars/:id`（seller）
 
-To manage vehicles, login as a `seller` user:
+`GET /api/cars` 关键参数：
 
-1. Public frontend users can register buyer accounts.
-2. A default seller will be auto-created if none exists.
-3. Login seller and get JWT token:
-   - `POST /api/auth/login`
-4. Use `Authorization: Bearer <token>` on:
-   - `POST /api/cars`
-   - `PUT /api/cars/:id`
-   - `DELETE /api/cars/:id`
-   - `GET /api/settings`
-   - `PUT /api/settings/auction-enabled`
+- `entry=sale|auction`
+- `includeAuction=1`（后台管理全量）
+- `search`、`status`
+- `limit`、`offset`
+- `sortBy`、`sortOrder`
 
-`GET /api/cars` supports:
-- `search` (brand/model keyword)
-- `status` (`available|auction|sold`)
-- `limit`, `offset`
-- `sortBy` (`createdAt|price|year|mileage|brand`)
-- `sortOrder` (`ASC|DESC`)
+### 竞拍
 
-## Pages
+- `POST /api/bids`
+- `GET /api/bids/car/:carId`
+- `GET /api/bids/me`
 
-1. `/` - Home page
-2. `/cars` - Car listing with filters
-3. `/auction` - Auction entry listing (only when auction enabled)
-4. `/cars/:id` - Car detail page
-5. `/login` - User login
-6. `/signup` - Public user registration
-7. `/forgot-password` - Reset forgotten password
-8. `/loan-calculator` - Loan calculator
-9. `/tracking` - User's bid tracking
-10. `/admin/cars` - Seller vehicle library/management
-11. `/admin/users` - Seller registered user management
+### 系统设置
 
-## License
+- `GET /api/settings/public`
+- `GET /api/settings`（seller）
+- `PUT /api/settings/auction-enabled`（seller）
 
-MIT
+### 后台用户管理（seller）
+
+- `GET /api/admin/users`
+- `PUT /api/admin/users/:id/role`
+- `DELETE /api/admin/users/:id`
+
+## 7. 邮箱服务说明
+
+- 忘记密码邮件依赖 SMTP 配置
+- 客户在后台配置好 SMTP 后，即可使用邮箱验证/重置流程
+- 未配置 SMTP 时，`forgot-password` 会失败（服务功能已就绪）
+
+## 8. 生产部署（当前）
+
+- 服务器：`154.12.28.145`
+- 访问地址：
+  - `http://154.12.28.145`
+  - `https://154.12.28.145`（当前为自签证书）
+- 进程守护：`pm2`（进程名：`sg-auto-backend`）
+- 反向代理：`nginx`
+
+## 9. 默认管理账号
+
+- Email：`admin@sgautotrading.local`
+- Password：`Admin@123456`
+
+> 首次上线后请立即修改默认管理员密码。
