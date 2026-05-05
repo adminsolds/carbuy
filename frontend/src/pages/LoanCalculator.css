@@ -1,0 +1,178 @@
+.loan-calculator {
+  padding: 2rem 0;
+}
+
+.loan-calculator h1 {
+  text-align: center;
+  color: #1E3A5F;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  text-align: center;
+  color: #666;
+  margin-bottom: 2rem;
+}
+
+.calculator-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.calculator-form {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+.calculator-form h2 {
+  margin-bottom: 1.5rem;
+  color: #1E3A5F;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #1E3A5F;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.calc-btn {
+  flex: 1;
+  background: #D4A84B;
+  color: white;
+  border: none;
+  padding: 0.85rem;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.calc-btn:hover:not(:disabled) {
+  background: #c49a3f;
+}
+
+.calc-btn:disabled {
+  opacity: 0.7;
+}
+
+.reset-btn {
+  background: white;
+  color: #666;
+  border: 1px solid #ddd;
+  padding: 0.85rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.reset-btn:hover {
+  background: #f5f5f5;
+}
+
+/* Results */
+.result-section {
+  background: #1E3A5F;
+  color: white;
+  padding: 2rem;
+  border-radius: 8px;
+}
+
+.result-section h2 {
+  margin-bottom: 1.5rem;
+  color: #D4A84B;
+}
+
+.result-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.result-item.highlight {
+  background: rgba(212, 168, 75, 0.2);
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.result-item.highlight .result-value {
+  font-size: 1.5rem;
+  color: #D4A84B;
+}
+
+.result-label {
+  color: rgba(255,255,255,0.8);
+}
+
+.result-value {
+  font-weight: 600;
+}
+
+/* Info Section */
+.info-section {
+  max-width: 900px;
+  margin: 3rem auto 0;
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+}
+
+.info-section h3 {
+  color: #1E3A5F;
+  margin-bottom: 1rem;
+}
+
+.info-section ul {
+  margin-left: 1.5rem;
+  color: #666;
+  line-height: 1.8;
+}
+
+.info-section ul li {
+  margin-bottom: 0.5rem;
+}
+
+.disclaimer {
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+  color: #999;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .calculator-content {
+    grid-template-columns: 1fr;
+  }
+}

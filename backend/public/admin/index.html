@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SG AUTO TRADING — Admin Panel</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- Login Screen -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="login-logo">🚗</div>
+        <h1>SG AUTO TRADING</h1>
+        <p>Admin Management System</p>
+      </div>
+      <form id="loginForm">
+        <input id="email" type="email" placeholder="Email address" required />
+        <input id="password" type="password" placeholder="Password" required />
+        <button type="submit" class="btn-primary">Sign In</button>
+      </form>
+      <p id="authMessage" class="auth-msg"></p>
+    </div>
+  </div>
+
+  <!-- Main Layout -->
+  <div id="adminLayout" class="admin-layout hidden">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">🚗</div>
+        <div>
+          <div class="brand-name">SG AUTO</div>
+          <div class="brand-sub">Admin Panel</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Overview</div>
+        <a href="#" class="nav-item active" data-section="dashboard">
+          <span class="nav-icon">◉</span> Dashboard
+        </a>
+
+        <div class="nav-section-label">Inventory</div>
+        <a href="#" class="nav-item" data-section="inventory">
+          <span class="nav-icon">◉</span> Car Inventory
+        </a>
+        <a href="#" class="nav-item" data-section="auction">
+          <span class="nav-icon">◉</span> Auction Vehicles
+        </a>
+
+        <div class="nav-section-label">Operations</div>
+        <a href="#" class="nav-item" data-section="agents">
+          <span class="nav-icon">◉</span> Agents
+        </a>
+        <a href="#" class="nav-item" data-section="orders">
+          <span class="nav-icon">◉</span> Orders
+        </a>
+
+        <div class="nav-section-label">Administration</div>
+        <a href="#" class="nav-item" data-section="users">
+          <span class="nav-icon">◉</span> Users
+        </a>
+        <a href="#" class="nav-item" data-section="settings">
+          <span class="nav-icon">◉</span> Settings
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="sidebarUserInitials">-</div>
+          <div>
+            <div class="sidebar-user-name" id="sidebarUserName">-</div>
+            <div class="sidebar-user-role" id="sidebarUserRole">-</div>
+          </div>
+        </div>
+        <button id="logoutBtn" class="btn-logout">Logout</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Top Header -->
+      <header class="top-header">
+        <div class="top-header-left">
+          <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+          <h1 id="sectionTitle">Dashboard</h1>
+        </div>
+        <div class="header-right">
+          <span class="header-time" id="headerTime"></span>
+        </div>
+      </header>
+
+      <!-- Content Area -->
+      <div class="content-area">
+
+        <!-- ═══════════════ SECTION: DASHBOARD ═══════════════ -->
+        <div id="section-dashboard" class="content-section">
+
+          <div class="stats-row" id="statsCards">
+            <!-- Filled by JS -->
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="card">
+              <div class="card-header"><h3>Recent Orders</h3></div>
+              <div class="card-body" style="padding:12px">
+                <div id="recentOrdersTable" class="mini-table"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><h3>Quick Actions</h3></div>
+              <div class="card-body quick-actions">
+                <button class="qa-btn" onclick="showSection('inventory');resetCarForm();">
+                  <span>🚗</span> Add Vehicle
+                </button>
+                <button class="qa-btn" onclick="showSection('agents');resetAgentForm();">
+                  <span>👤</span> Add Agent
+                </button>
+                <button class="qa-btn" onclick="showSection('auction');">
+                  <span>🔨</span> Auction
+                </button>
+                <button class="qa-btn" onclick="showSection('orders');">
+                  <span>📋</span> Orders
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════ SECTION: CAR INVENTORY ═══════════════ -->
+        <div id="section-inventory" class="content-section hidden">
+          <div class="section-toolbar">
+            <h2>Car Inventory</h2>
+            <button class="btn-primary" onclick="resetCarForm();showCarForm()">+ Add Vehicle</button>
+          </div>
+
+          <!-- Stats row -->
+          <div class="mini-stats" id="inventoryStats"></div>
+
+          <!-- Filter toolbar -->
+          <div class="card">
+            <div class="card-body">
+              <div class="filter-row">
+                <input id="invSearch" type="text" placeholder="Search brand, model..." />
+                <select id="invStatus">
+                  <option value="all">All Status</option>
+                  <option value="available">Available</option>
+                  <option value="sold">Sold</option>
+                </select>
+                <input id="invMinPrice" type="number" placeholder="Min Price" />
+                <input id="invMaxPrice" type="number" placeholder="Max Price" />
+                <select id="invSortBy">
+                  <option value="createdAt">Newest</option>
+                  <option value="price">Price</option>
+                  <option value="year">Year</option>
+                  <option value="mileage">Mileage</option>
+                </select>
+                <select id="invSortOrder">
+                  <option value="DESC">Desc</option>
+                  <option value="ASC">Asc</option>
+                </select>
+                <select id="invPageSize">
+                  <option value="10">10/page</option>
+                  <option value="20">20/page</option>
+                  <option value="50">50/page</option>
+                </select>
+                <button class="btn-primary" onclick="loadInventory(1)">Apply</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Car form (hidden by default) -->
+          <div id="carFormPanel" class="card hidden">
+            <div class="card-header">
+              <h3 id="carFormTitle">Add New Vehicle</h3>
+              <button class="btn-icon" onclick="hideCarForm()">✕</button>
+            </div>
+            <div class="card-body">
+              <form id="carForm">
+                <input type="hidden" id="carEditId" />
+                <div class="form-grid-3">
+                  <div class="form-group"><label>Brand *</label><input id="carBrand" placeholder="BMW" required /></div>
+                  <div class="form-group"><label>Model *</label><input id="carModel" placeholder="320i Sport" required /></div>
+                  <div class="form-group"><label>Year *</label><input id="carYear" type="number" placeholder="2021" required /></div>
+                  <div class="form-group"><label>Mileage (km) *</label><input id="carMileage" type="number" placeholder="25000" required /></div>
+                  <div class="form-group"><label>Color</label><input id="carColor" placeholder="White" /></div>
+                  <div class="form-group"><label>Price (RM) *</label><input id="carPrice" type="number" placeholder="185000" required /></div>
+                  <div class="form-group"><label>Transmission</label><input id="carTransmission" placeholder="Auto" /></div>
+                  <div class="form-group"><label>Fuel Type</label><input id="carFuelType" placeholder="Petrol" /></div>
+                  <div class="form-group"><label>Engine CC</label><input id="carEngineCC" type="number" placeholder="1998" /></div>
+                  <div class="form-group"><label>Chassis No</label><input id="carChassisNo" placeholder="Auto-generated if blank" /></div>
+                  <div class="form-group"><label>Previous Owners</label><input id="carOwnersCount" type="number" placeholder="1" /></div>
+                  <div class="form-group"><label>Status</label>
+                    <select id="carStatus"><option value="available">Available</option><option value="sold">Sold</option></select>
+                  </div>
+                  <div class="form-group"><label>Repair History</label>
+                    <select id="carRepaired">
+                      <option value="no">No Repair Record</option>
+                      <option value="yes">Has Repair Record</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group"><label>Description</label><textarea id="carDescription" rows="2" placeholder="Vehicle description..."></textarea></div>
+
+                <!-- Image upload section -->
+                <div class="form-group">
+                  <label>Images</label>
+                  <div class="image-upload-area" id="imageUploadArea">
+                    <div class="upload-dropzone" id="uploadDropzone">
+                      <div class="upload-icon">📷</div>
+                      <p>Drag & drop images here, or click to select</p>
+                      <span>Supports: JPG, PNG, GIF, WebP (max 10MB each, up to 10 images)</span>
+                      <input type="file" id="carImageInput" accept="image/*" multiple style="display:none" />
+                    </div>
+                    <div class="upload-progress hidden" id="uploadProgress">
+                      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+                      <p id="uploadStatus">Uploading...</p>
+                    </div>
+                    <div class="uploaded-images" id="uploadedImages"></div>
+                    <p class="upload-hint">Or paste image URLs below (one per line):</p>
+                    <textarea id="carImages" rows="2" placeholder="https://example.com/image.jpg"></textarea>
+                  </div>
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" class="btn-primary" id="carSaveBtn">Create Vehicle</button>
+                  <button type="button" class="btn-secondary" onclick="hideCarForm()">Cancel</button>
+                </div>
+                <p id="carFormMsg" class="form-msg"></p>
+              </form>
+            </div>
+          </div>
+
+          <!-- Inventory table -->
+          <div class="card">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th><th>Brand / Model</th><th>Year</th><th>Mileage</th><th>Status</th>
+                    <th>Price (RM)</th><th>Transmission</th><th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="inventoryTable"></tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <button id="invPrev" class="btn-secondary btn-sm">← Prev</button>
+              <span id="invPager">Page 1</span>
+              <button id="invNext" class="btn-secondary btn-sm">Next →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════ SECTION: AUCTION ═══════════════ -->
+        <div id="section-auction" class="content-section hidden">
+          <div class="section-toolbar">
+            <h2>Auction Vehicles</h2>
+            <div class="auction-toggle">
+              <label>Auction System:</label>
+              <span id="auctionBadge" class="badge badge-secondary">Disabled</span>
+              <button id="toggleAuctionBtn" class="btn-secondary btn-sm">Enable</button>
+            </div>
+          </div>
+
+          <div class="mini-stats" id="auctionStats"></div>
+
+          <div class="card">
+            <div class="card-header"><h3>Auction Settings</h3></div>
+            <div class="card-body">
+              <p class="auction-desc">Enable the auction system to allow users to place bids on vehicles. When a vehicle is set to auction status, bidding will be available until the auction end time.</p>
+            </div>
+          </div>
+
+          <!-- Auction form -->
+          <div id="auctionFormPanel" class="card hidden">
+            <div class="card-header">
+              <h3 id="auctionFormTitle">Add Auction Vehicle</h3>
+              <button class="btn-icon" onclick="hideAuctionForm()">✕</button>
+            </div>
+            <div class="card-body">
+              <form id="auctionForm">
+                <input type="hidden" id="auctionEditId" />
+                <div class="form-grid-3">
+                  <div class="form-group"><label>Brand *</label><input id="aucBrand" placeholder="BMW" required /></div>
+                  <div class="form-group"><label>Model *</label><input id="aucModel" placeholder="320i Sport" required /></div>
+                  <div class="form-group"><label>Year *</label><input id="aucYear" type="number" placeholder="2021" required /></div>
+                  <div class="form-group"><label>Mileage (km) *</label><input id="aucMileage" type="number" placeholder="25000" required /></div>
+                  <div class="form-group"><label>Color</label><input id="aucColor" placeholder="White" /></div>
+                  <div class="form-group"><label>Starting Bid (RM) *</label><input id="aucStartingBid" type="number" placeholder="160000" required /></div>
+                  <div class="form-group"><label>Reserve Price (RM)</label><input id="aucReservePrice" type="number" placeholder="Optional" /></div>
+                  <div class="form-group"><label>Auction End Time *</label><input id="aucEndTime" type="datetime-local" required /></div>
+                  <div class="form-group"><label>Buy Now Price (RM)</label><input id="aucBuyNowPrice" type="number" placeholder="Optional" /></div>
+                </div>
+                <div class="form-group"><label>Description</label><textarea id="aucDescription" rows="2"></textarea></div>
+
+                <!-- Image upload section -->
+                <div class="form-group">
+                  <label>Images</label>
+                  <div class="image-upload-area" id="aucImageUploadArea">
+                    <div class="upload-dropzone" id="aucUploadDropzone">
+                      <div class="upload-icon">📷</div>
+                      <p>Drag & drop images here, or click to select</p>
+                      <span>Supports: JPG, PNG, GIF, WebP (max 10MB each, up to 10 images)</span>
+                      <input type="file" id="aucImageInput" accept="image/*" multiple style="display:none" />
+                    </div>
+                    <div class="upload-progress hidden" id="aucUploadProgress">
+                      <div class="progress-bar"><div class="progress-fill" id="aucProgressFill"></div></div>
+                      <p id="aucUploadStatus">Uploading...</p>
+                    </div>
+                    <div class="uploaded-images" id="aucUploadedImages"></div>
+                    <p class="upload-hint">Or paste image URLs below (one per line):</p>
+                    <textarea id="aucImages" rows="2"></textarea>
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn-primary" id="aucSaveBtn">List for Auction</button>
+                  <button type="button" class="btn-secondary" onclick="hideAuctionForm()">Cancel</button>
+                </div>
+                <p id="auctionFormMsg" class="form-msg"></p>
+              </form>
+            </div>
+          </div>
+
+          <!-- Auction car table -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Auction Vehicles</h3>
+              <button class="btn-primary btn-sm" onclick="hideInventoryForm();showAuctionForm()">+ Add Auction Car</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th><th>Car</th><th>Starting Bid</th><th>Current Bid</th><th>End Time</th><th>Status</th><th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="auctionTable"></tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <button id="aucPrev" class="btn-secondary btn-sm">← Prev</button>
+              <span id="aucPager">Page 1</span>
+              <button id="aucNext" class="btn-secondary btn-sm">Next →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════ SECTION: AGENTS ═══════════════ -->
+        <div id="section-agents" class="content-section hidden">
+          <div class="section-toolbar">
+            <h2>Agent Management</h2>
+            <button class="btn-primary" onclick="resetAgentForm();showAgentForm()">+ Add Agent</button>
+          </div>
+
+          <!-- Agent form -->
+          <div id="agentFormPanel" class="card hidden">
+            <div class="card-header">
+              <h3 id="agentFormTitle">Add New Agent</h3>
+              <button class="btn-icon" onclick="hideAgentForm()">✕</button>
+            </div>
+            <div class="card-body">
+              <form id="agentForm">
+                <input type="hidden" id="agentEditId" />
+                <div class="form-grid-3">
+                  <div class="form-group"><label>Agent Code *</label><input id="agentCode" placeholder="AGT-001" required /></div>
+                  <div class="form-group"><label>Name *</label><input id="agentName" placeholder="John Smith" required /></div>
+                  <div class="form-group"><label>Email</label><input id="agentEmail" type="email" placeholder="agent@company.com" /></div>
+                  <div class="form-group"><label>Phone</label><input id="agentPhone" placeholder="+60 12-345 6789" /></div>
+                  <div class="form-group"><label>Company</label><input id="agentCompany" placeholder="ABC Motors Sdn Bhd" /></div>
+                  <div class="form-group"><label>Status</label>
+                    <select id="agentActive"><option value="true">Active</option><option value="false">Inactive</option></select>
+                  </div>
+                </div>
+                <div class="form-group"><label>Address</label><textarea id="agentAddress" rows="2" placeholder="Full address..."></textarea></div>
+                <div class="form-group"><label>Notes</label><textarea id="agentNotes" rows="2" placeholder="Internal notes..."></textarea></div>
+                <div class="form-actions">
+                  <button type="submit" class="btn-primary" id="agentSaveBtn">Create Agent</button>
+                  <button type="button" class="btn-secondary" onclick="hideAgentForm()">Cancel</button>
+                </div>
+                <p id="agentFormMsg" class="form-msg"></p>
+              </form>
+            </div>
+          </div>
+
+          <!-- Agent list -->
+          <div class="card">
+            <div class="card-header"><h3>All Agents</h3></div>
+            <div class="card-body">
+              <div class="filter-row">
+                <input id="agentSearch" type="text" placeholder="Search code, name, email..." />
+                <select id="agentFilterActive">
+                  <option value="all">All Status</option>
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
+                </select>
+                <select id="agentSortBy">
+                  <option value="createdAt">Newest</option>
+                  <option value="name">Name</option>
+                  <option value="code">Code</option>
+                </select>
+                <select id="agentSortOrder">
+                  <option value="DESC">Desc</option>
+                  <option value="ASC">Asc</option>
+                </select>
+                <button class="btn-primary" onclick="loadAgents(1)">Apply</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th><th>Code</th><th>Name</th><th>Email</th><th>Phone</th><th>Company</th><th>Status</th><th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="agentTable"></tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <button id="agentPrev" class="btn-secondary btn-sm">← Prev</button>
+              <span id="agentPager">Page 1</span>
+              <button id="agentNext" class="btn-secondary btn-sm">Next →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════ SECTION: ORDERS ═══════════════ -->
+        <div id="section-orders" class="content-section hidden">
+          <div class="section-toolbar">
+            <h2>Order Management</h2>
+            <button class="btn-primary" onclick="resetOrderForm();showOrderForm()">+ Create Order</button>
+          </div>
+
+          <!-- Order stats -->
+          <div class="stats-row" id="orderStats"></div>
+
+          <!-- Order form (hidden by default) -->
+          <div id="orderFormPanel" class="card hidden">
+            <div class="card-header">
+              <h3 id="orderFormTitle">Create New Order</h3>
+              <button class="btn-icon" onclick="hideOrderForm()">✕</button>
+            </div>
+            <div class="card-body">
+              <form id="createOrderForm">
+                <input type="hidden" id="orderEditId" />
+                <div class="form-grid-3">
+                  <div class="form-group">
+                    <label>Vehicle *</label>
+                    <select id="orderCarId" required>
+                      <option value="">-- Select Vehicle --</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Order Type *</label>
+                    <select id="orderTypeSelect">
+                      <option value="purchase">Purchase</option>
+                      <option value="auction_win">Auction Win</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Amount (RM) *</label>
+                    <input id="orderAmount" type="number" placeholder="e.g. 185000" required />
+                  </div>
+                  <div class="form-group">
+                    <label>Buyer Name *</label>
+                    <input id="orderBuyerName" type="text" placeholder="Customer name" required />
+                  </div>
+                  <div class="form-group">
+                    <label>Buyer Email</label>
+                    <input id="orderBuyerEmail" type="email" placeholder="customer@example.com" />
+                  </div>
+                  <div class="form-group">
+                    <label>Buyer Phone</label>
+                    <input id="orderBuyerPhone" type="text" placeholder="+60 12-345 6789" />
+                  </div>
+                  <div class="form-group">
+                    <label>Agent</label>
+                    <select id="orderAgentId">
+                      <option value="">-- No Agent --</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Initial Status</label>
+                    <select id="orderInitialStatus">
+                      <option value="pending">Pending</option>
+                      <option value="deposit_paid">Deposit Paid</option>
+                      <option value="paid">Paid</option>
+                      <option value="processing">Processing</option>
+                      <option value="shipped">Shipped</option>
+                      <option value="delivered">Delivered</option>
+                      <option value="completed">Completed</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Deposit Paid (RM)</label>
+                    <input id="orderDepositPaid" type="number" placeholder="0" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Delivery Address</label>
+                  <textarea id="orderDeliveryAddress" rows="2" placeholder="Customer delivery address..."></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Notes</label>
+                  <textarea id="orderNotes" rows="2" placeholder="Internal notes..."></textarea>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn-primary" id="orderSaveBtn">Create Order</button>
+                  <button type="button" class="btn-secondary" onclick="hideOrderForm()">Cancel</button>
+                </div>
+                <p id="orderFormMsg" class="form-msg"></p>
+              </form>
+            </div>
+          </div>
+
+          <!-- Order detail (hidden by default) -->
+          <div id="orderDetailPanel" class="card hidden">
+            <div class="card-header">
+              <h3>Order Details — <span id="orderDetailNo">-</span></h3>
+              <button class="btn-icon" onclick="hideOrderDetail()">✕</button>
+            </div>
+            <div class="card-body" id="orderDetailBody"></div>
+          </div>
+
+          <!-- Order table -->
+          <div class="card">
+            <div class="card-header"><h3>All Orders</h3></div>
+            <div class="card-body">
+              <div class="filter-row">
+                <input id="orderSearch" type="text" placeholder="Order no, buyer name..." />
+                <select id="orderStatus">
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="deposit_paid">Deposit Paid</option>
+                  <option value="paid">Paid</option>
+                  <option value="processing">Processing</option>
+                  <option value="shipped">Shipped</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+                <select id="orderType">
+                  <option value="all">All Types</option>
+                  <option value="purchase">Purchase</option>
+                  <option value="auction_win">Auction Win</option>
+                </select>
+                <select id="orderSortBy">
+                  <option value="createdAt">Newest</option>
+                  <option value="amount">Amount</option>
+                </select>
+                <select id="orderSortOrder">
+                  <option value="DESC">Desc</option>
+                  <option value="ASC">Asc</option>
+                </select>
+                <select id="orderPageSize">
+                  <option value="10">10/page</option>
+                  <option value="20">20/page</option>
+                </select>
+                <button class="btn-primary" onclick="loadOrders(1)">Apply</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Order No</th><th>Buyer</th><th>Car</th><th>Type</th><th>Amount (RM)</th><th>Status</th><th>Date</th><th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="orderTable"></tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <button id="orderPrev" class="btn-secondary btn-sm">← Prev</button>
+              <span id="orderPager">Page 1</span>
+              <button id="orderNext" class="btn-secondary btn-sm">Next →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════ SECTION: USERS ═══════════════ -->
+        <div id="section-users" class="content-section hidden">
+          <div class="section-toolbar"><h2>User Management</h2></div>
+          <div class="card">
+            <div class="card-header"><h3>Registered Users</h3></div>
+            <div class="card-body">
+              <div class="filter-row">
+                <input id="userSearch" type="text" placeholder="Search name, email, phone..." />
+                <select id="userRole"><option value="all">All Roles</option><option value="buyer">Buyer</option><option value="seller">Seller</option></select>
+                <select id="userActive"><option value="all">All Status</option><option value="true">Active</option><option value="false">Inactive</option></select>
+                <select id="userSortBy"><option value="createdAt">Newest</option><option value="name">Name</option></select>
+                <select id="userSortOrder"><option value="DESC">Desc</option><option value="ASC">Asc</option></select>
+                <button class="btn-primary" onclick="loadUsers(1)">Apply</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Active</th><th>Joined</th><th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="userTable"></tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <button id="userPrev" class="btn-secondary btn-sm">← Prev</button>
+              <span id="userPager">Page 1</span>
+              <button id="userNext" class="btn-secondary btn-sm">Next →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════ SECTION: SETTINGS ═══════════════ -->
+        <div id="section-settings" class="content-section hidden">
+          <div class="section-toolbar"><h2>System Settings</h2></div>
+
+          <div class="card">
+            <div class="card-header"><h3>Auction System</h3></div>
+            <div class="card-body">
+              <div class="setting-row">
+                <div>
+                  <strong>Enable / Disable Auction</strong>
+                  <p class="setting-desc">When enabled, users can place bids on vehicles marked as auction items.</p>
+                  <p>Current status: <strong id="settingsAuctionStatus">Disabled</strong></p>
+                </div>
+                <button id="settingsToggleBtn" class="btn-primary">Enable Auction</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h3>Email (SMTP)</h3></div>
+            <div class="card-body">
+              <form id="smtpForm">
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label>SMTP Host</label>
+                    <input type="text" id="smtpHost" placeholder="smtp.example.com" />
+                  </div>
+                  <div class="form-group">
+                    <label>SMTP Port</label>
+                    <input type="number" id="smtpPort" placeholder="587" />
+                  </div>
+                  <div class="form-group">
+                    <label>SMTP User</label>
+                    <input type="text" id="smtpUser" placeholder="user@smtp.com" />
+                  </div>
+                  <div class="form-group">
+                    <label>SMTP Password</label>
+                    <input type="password" id="smtpPass" placeholder="Password (hidden)" />
+                  </div>
+                  <div class="form-group">
+                    <label>From Address</label>
+                    <input type="email" id="smtpFrom" placeholder="noreply@example.com" />
+                  </div>
+                  <div class="form-group">
+                    <label>App URL (for email links)</label>
+                    <input type="url" id="smtpAppUrl" placeholder="http://localhost:5173" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Use SSL / TLS</label>
+                  <select id="smtpSecure">
+                    <option value="false">No (STARTTLS on port 587)</option>
+                    <option value="true">Yes (SSL on port 465)</option>
+                  </select>
+                </div>
+                <div class="form-actions" style="margin-top:12px">
+                  <button type="submit" class="btn-primary" id="smtpSaveBtn">Save SMTP Settings</button>
+                  <button type="button" class="btn-secondary" id="smtpTestBtn">Send Test Email</button>
+                  <span id="smtpMsg" class="form-msg" style="margin-left:12px"></span>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h3>Admin Account</h3></div>
+            <div class="card-body">
+              <div class="info-row">
+                <span>Name:</span><strong id="settingsName">-</strong>
+              </div>
+              <div class="info-row">
+                <span>Email:</span><strong id="settingsEmail">-</strong>
+              </div>
+              <div class="info-row">
+                <span>Role:</span><strong id="settingsRole">-</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h3>System Info</h3></div>
+            <div class="card-body">
+              <div class="info-row"><span>Database:</span><strong>SQLite</strong></div>
+              <div class="info-row"><span>Server Time:</span><strong id="settingsServerTime">-</strong></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content-area -->
+    </div><!-- /main-content -->
+  </div><!-- /adminLayout -->
+</div><!-- /app -->
+
+<div id="globalMsg" class="global-msg"></div>
+<script src="./main.js"></script>
+</body>
+</html>

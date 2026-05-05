@@ -1,0 +1,25 @@
+﻿# Node deps
+**/node_modules/
+
+# Build outputs
+frontend/dist/
+
+# Runtime logs
+*.log
+backend/*.log
+frontend/*.log
+
+# Local databases
+backend/database.sqlite
+backend/database.sqlite-shm
+backend/database.sqlite-wal
+
+# Env secrets
+backend/.env
+frontend/.env
+
+# OS/IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
