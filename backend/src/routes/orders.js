@@ -1,5 +1,6 @@
 const express = require('express');
-const { Op } = require('sequelize');
+const { Op, fn, col, where } = require('sequelize');
+const bcrypt = require('bcryptjs');
 const { Order, User, Car, Agent } = require('../models');
 const auth = require('../middleware/auth');
 const authorize = require('../middleware/authorize');
@@ -25,6 +26,53 @@ const generateOrderNo = () => {
   const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
   const random = Math.random().toString(36).substring(2, 8).toUpperCase();
   return `ORD-${dateStr}-${random}`;
+};
+
+const normalizeEmail = (value) => {
+  if (typeof value !== 'string') return null;
+  const email = value.trim().toLowerCase();
+  return email || null;
+};
+
+const normalizeText = (value) => {
+  if (typeof value !== 'string') return null;
+  const text = value.trim();
+  return text || null;
+};
+
+const resolveUserByBuyer = async ({ buyerEmail }) => {
+  const normalizedEmail = normalizeEmail(buyerEmail);
+  if (!normalizedEmail) return null;
+  return User.findOne({
+    where: where(fn('lower', col('email')), normalizedEmail)
+  });
+};
+
+const buildGuestEmail = () => `guest-order-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@sgautotrading.local`;
+
+const ensureBuyerUser = async ({ buyerName, buyerEmail, buyerPhone, fallbackUserId = null }) => {
+  const normalizedEmail = normalizeEmail(buyerEmail);
+  const normalizedName = normalizeText(buyerName) || 'Guest Buyer';
+  const normalizedPhone = normalizeText(buyerPhone);
+
+  if (normalizedEmail) {
+    const existing = await resolveUserByBuyer({ buyerEmail: normalizedEmail });
+    if (existing) return existing;
+  } else if (fallbackUserId) {
+    const fallbackUser = await User.findByPk(fallbackUserId);
+    if (fallbackUser) return fallbackUser;
+  }
+
+  const passwordSeed = `Guest@${Math.random().toString(36).slice(2, 12)}A1`;
+  const hashedPassword = await bcrypt.hash(passwordSeed, 10);
+
+  return User.create({
+    email: normalizedEmail || buildGuestEmail(),
+    password: hashedPassword,
+    name: normalizedName,
+    phone: normalizedPhone || null,
+    role: 'buyer',
+  });
 };
 
 // ─── Helper: serialize order ─────────────────────────────────────────────────
@@ -152,27 +200,33 @@ router.post('/admin', auth, authorize('seller'), async (req, res) => {
       return res.status(400).json({ error: 'An active order already exists for this vehicle.' });
     }
 
-    // Find user by email if provided, otherwise create a guest buyer
-    let userId = null;
-    if (buyer_email) {
-      const existingUser = await User.findOne({ where: { email: buyer_email } });
-      if (existingUser) userId = existingUser.id;
-    }
+    const buyerNameInput = normalizeText(buyer_name);
+    const buyerEmailInput = normalizeEmail(buyer_email);
+    const buyerPhoneInput = normalizeText(buyer_phone);
+    const linkedUser = await ensureBuyerUser({
+      buyerName: buyerNameInput,
+      buyerEmail: buyerEmailInput,
+      buyerPhone: buyerPhoneInput
+    });
+
+    const snapshotBuyerName = linkedUser?.name || buyerNameInput;
+    const snapshotBuyerEmail = linkedUser?.email || buyerEmailInput;
+    const snapshotBuyerPhone = buyerPhoneInput || linkedUser?.phone || null;
 
     const order = await Order.create({
       order_no: generateOrderNo(),
-      user_id: userId || null,
+      user_id: linkedUser.id,
       car_id,
       agent_id: agent_id || null,
       order_type: ['purchase', 'auction_win'].includes(order_type) ? order_type : 'purchase',
       amount: Number(amount),
       deposit_paid: 0,
       status: 'pending',
-      buyer_name: buyer_name.trim(),
-      buyer_email: buyer_email?.trim() || null,
-      buyer_phone: buyer_phone?.trim() || null,
-      delivery_address: delivery_address?.trim() || null,
-      notes: notes?.trim() || null,
+      buyer_name: snapshotBuyerName,
+      buyer_email: snapshotBuyerEmail,
+      buyer_phone: snapshotBuyerPhone,
+      delivery_address: normalizeText(delivery_address),
+      notes: normalizeText(notes),
     });
 
     // Mark car as sold
@@ -197,12 +251,38 @@ router.post('/admin', auth, authorize('seller'), async (req, res) => {
 router.get('/me', auth, async (req, res) => {
   try {
     const { status } = req.query;
-    const where = { user_id: req.user.id };
-    if (status && status !== 'all') where.status = status;
+    const currentUser = await User.findByPk(req.user.id, { attributes: ['id', 'email'] });
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const currentEmail = normalizeEmail(currentUser.email);
+
+    // Auto-bind historical orders created by admin with matching buyer email.
+    if (currentEmail) {
+      await Order.update(
+        { user_id: currentUser.id },
+        {
+          where: {
+            user_id: null,
+            [Op.and]: [where(fn('lower', col('buyer_email')), currentEmail)]
+          }
+        }
+      );
+    }
+
+    const orderWhere = {
+      [Op.or]: [
+        { user_id: currentUser.id },
+        ...(currentEmail ? [where(fn('lower', col('buyer_email')), currentEmail)] : [])
+      ]
+    };
+    if (status && status !== 'all') orderWhere.status = status;
 
     const orders = await Order.findAll({
-      where,
+      where: orderWhere,
       include: [
+        { model: User, as: 'user', attributes: ['id', 'name', 'email'] },
         { model: Car, as: 'car', attributes: ['id', 'brand', 'model', 'year', 'images'] },
         { model: Agent, as: 'agent', attributes: ['id', 'code', 'name'] }
       ],
@@ -340,15 +420,32 @@ router.put('/:id', auth, authorize('seller'), async (req, res) => {
       agent_id, delivery_address, notes
     } = req.body;
 
+    const nextBuyerNameInput = buyer_name !== undefined ? normalizeText(buyer_name) : order.buyer_name;
+    const nextBuyerEmailInput = buyer_email !== undefined ? normalizeEmail(buyer_email) : normalizeEmail(order.buyer_email);
+    const nextBuyerPhoneInput = buyer_phone !== undefined ? normalizeText(buyer_phone) : order.buyer_phone;
+    const linkedUser = await ensureBuyerUser({
+      buyerName: nextBuyerNameInput,
+      buyerEmail: nextBuyerEmailInput,
+      buyerPhone: nextBuyerPhoneInput,
+      fallbackUserId: order.user_id
+    });
+
+    const nextBuyerName = linkedUser?.name || nextBuyerNameInput;
+    const nextBuyerEmail = linkedUser?.email || nextBuyerEmailInput;
+    const nextBuyerPhone = buyer_phone !== undefined
+      ? normalizeText(buyer_phone)
+      : (order.buyer_phone || linkedUser?.phone || null);
+
     await order.update({
-      buyer_name: buyer_name !== undefined ? (buyer_name?.trim() || null) : order.buyer_name,
-      buyer_email: buyer_email !== undefined ? (buyer_email?.trim() || null) : order.buyer_email,
-      buyer_phone: buyer_phone !== undefined ? (buyer_phone?.trim() || null) : order.buyer_phone,
+      user_id: linkedUser.id,
+      buyer_name: nextBuyerName,
+      buyer_email: nextBuyerEmail,
+      buyer_phone: nextBuyerPhone,
       amount: amount !== undefined ? Number(amount) : order.amount,
       deposit_paid: deposit_paid !== undefined ? Number(deposit_paid) : order.deposit_paid,
       agent_id: agent_id !== undefined ? (agent_id ? Number(agent_id) : null) : order.agent_id,
-      delivery_address: delivery_address !== undefined ? (delivery_address?.trim() || null) : order.delivery_address,
-      notes: notes !== undefined ? (notes?.trim() || null) : order.notes
+      delivery_address: delivery_address !== undefined ? normalizeText(delivery_address) : order.delivery_address,
+      notes: notes !== undefined ? normalizeText(notes) : order.notes
     });
 
     const updated = await Order.findByPk(order.id, {

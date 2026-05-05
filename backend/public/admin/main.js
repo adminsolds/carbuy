@@ -26,6 +26,21 @@ const S = {
   aucUploadedImages: [],
 };
 
+const byId = (id) => document.getElementById(id);
+const setText = (id, value) => {
+  const el = byId(id);
+  if (el) el.textContent = value;
+};
+const setTextFirst = (ids, value) => {
+  for (const id of ids) {
+    const el = byId(id);
+    if (el) {
+      el.textContent = value;
+      return;
+    }
+  }
+};
+
 // ─── API helper ────────────────────────────────────────────────────────────────
 async function api(path, opts = {}) {
   const hdrs = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
@@ -153,20 +168,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ─── Show / Hide screens ────────────────────────────────────────────────────────
 function showLogin(msg = '') {
-  document.getElementById('loginScreen').classList.remove('hidden');
-  document.getElementById('adminLayout').classList.add('hidden');
-  document.getElementById('authMessage').textContent = msg;
+  byId('loginScreen')?.classList.remove('hidden');
+  byId('adminLayout')?.classList.add('hidden');
+  setText('authMessage', msg);
 }
 
 function showAdmin() {
-  document.getElementById('loginScreen').classList.add('hidden');
-  document.getElementById('adminLayout').classList.remove('hidden');
-  document.getElementById('sidebarUserName').textContent = S.user?.name || '-';
-  document.getElementById('sidebarUserRole').textContent = S.user?.role || '-';
-  document.getElementById('sidebarUserInitials').textContent = (S.user?.name || '-').charAt(0).toUpperCase();
-  document.getElementById('settingsUserName').textContent = S.user?.name || '-';
-  document.getElementById('settingsUserEmail').textContent = S.user?.email || '-';
-  document.getElementById('settingsUserRole').textContent = S.user?.role || '-';
+  byId('loginScreen')?.classList.add('hidden');
+  byId('adminLayout')?.classList.remove('hidden');
+  setText('sidebarUserName', S.user?.name || '-');
+  setText('sidebarUserRole', S.user?.role || '-');
+  setText('sidebarUserInitials', (S.user?.name || '-').charAt(0).toUpperCase());
+  setTextFirst(['settingsUserName', 'settingsName'], S.user?.name || '-');
+  setTextFirst(['settingsUserEmail', 'settingsEmail'], S.user?.email || '-');
+  setTextFirst(['settingsUserRole', 'settingsRole'], S.user?.role || '-');
 }
 
 function showSection(name) {
@@ -179,7 +194,8 @@ function showSection(name) {
 }
 
 function msg(text, type = 'success', duration = 3500) {
-  const el = document.getElementById('globalMessage');
+  const el = byId('globalMessage') || byId('globalMsg');
+  if (!el) return;
   el.textContent = text;
   el.className = `global-msg ${type}`;
   el.style.opacity = '1';
@@ -984,13 +1000,21 @@ async function updateOrderStatus(newStatus) {
       method: 'PUT', body: JSON.stringify({ status: newStatus })
     });
     msg(`Order status updated to '${newStatus}'.`);
-    document.getElementById('orderStatusMsg').textContent = `Status changed to '${newStatus}'.`;
-    document.getElementById('orderStatusMsg').className = 'form-msg';
+    const statusEl = byId('orderStatusMsg');
+    if (statusEl) {
+      statusEl.textContent = `Status changed to '${newStatus}'.`;
+      statusEl.className = 'form-msg';
+    }
     await viewOrder(S.selectedOrderId);
     await loadOrders(S.orderPage);
   } catch (e) {
-    document.getElementById('orderStatusMsg').textContent = e.message;
-    document.getElementById('orderStatusMsg').className = 'form-msg error';
+    const statusEl = byId('orderStatusMsg');
+    if (statusEl) {
+      statusEl.textContent = e.message;
+      statusEl.className = 'form-msg error';
+    } else {
+      msg(e.message, 'error');
+    }
   }
 }
 
@@ -1053,7 +1077,8 @@ function renderUserPager() {
 
 // ─── Clock ─────────────────────────────────────────────────────────────────────
 function startClock() {
-  const el = document.getElementById('headerTime');
+  const el = byId('headerTime');
+  if (!el) return;
   const tick = () => { el.textContent = new Date().toLocaleString('en-MY', { dateStyle: 'medium', timeStyle: 'short' }); };
   tick(); setInterval(tick, 1000);
 }

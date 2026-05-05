@@ -1,15 +1,38 @@
 const request = require('supertest');
-const { app, sellerToken, buyerToken, testCar, testAgent } = {
-  app: global._testApp,
-  sellerToken: global._sellerToken,
-  buyerToken: global._buyerToken,
-  testCar: global._testCar,
-  testAgent: global._testAgent,
-};
+const fixtures = require('./fixtures');
+let app;
+let sellerToken;
+let buyerToken;
+let testAgent;
+let carCounter = 0;
+
+beforeAll(() => {
+  app = fixtures.app;
+  sellerToken = fixtures.sellerToken;
+  buyerToken = fixtures.buyerToken;
+  testAgent = fixtures.testAgent;
+});
+
+async function createAvailableCar() {
+  carCounter += 1;
+  const res = await request(app)
+    .post('/api/cars')
+    .set('Authorization', `Bearer ${sellerToken}`)
+    .send({
+      brand: 'TestBrand',
+      model: `Model-${carCounter}`,
+      year: 2022,
+      mileage: 12000 + carCounter,
+      price: 100000 + carCounter,
+      status: 'available'
+    });
+  return res.body.car;
+}
 
 describe('Orders API', () => {
   describe('POST /api/orders/admin', () => {
     it('should create order as seller', async () => {
+      const testCar = await createAvailableCar();
       const res = await request(app)
         .post('/api/orders/admin')
         .set('Authorization', `Bearer ${sellerToken}`)
@@ -27,7 +50,7 @@ describe('Orders API', () => {
       expect(res.status).toBe(201);
       expect(res.body.order).toHaveProperty('order_no');
       expect(res.body.order).toHaveProperty('status', 'pending');
-      expect(res.body.order.buyer_name).toBe('Test Buyer');
+      expect(res.body.order.buyer_name).toBe('Buyer User');
     });
 
     it('should mark car as sold after order creation', async () => {
@@ -47,6 +70,13 @@ describe('Orders API', () => {
     });
 
     it('should reject duplicate active order for same car', async () => {
+      const testCar = await createAvailableCar();
+      const first = await request(app)
+        .post('/api/orders/admin')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({ car_id: testCar.id, order_type: 'purchase', amount: 130000, buyer_name: 'First Buyer' });
+      expect(first.status).toBe(201);
+
       const res = await request(app)
         .post('/api/orders/admin')
         .set('Authorization', `Bearer ${sellerToken}`)
@@ -56,6 +86,7 @@ describe('Orders API', () => {
     });
 
     it('should reject order without required fields', async () => {
+      const testCar = await createAvailableCar();
       const res = await request(app)
         .post('/api/orders/admin')
         .set('Authorization', `Bearer ${sellerToken}`)
@@ -72,6 +103,7 @@ describe('Orders API', () => {
     });
 
     it('should reject order as buyer', async () => {
+      const testCar = await createAvailableCar();
       const res = await request(app)
         .post('/api/orders/admin')
         .set('Authorization', `Bearer ${buyerToken}`)
@@ -105,6 +137,40 @@ describe('Orders API', () => {
     });
   });
 
+  describe('GET /api/orders/me', () => {
+    it('should return admin-created order linked by buyer email', async () => {
+      const carRes = await request(app)
+        .post('/api/cars')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({ brand: 'Nissan', model: 'Teana', year: 2020, mileage: 32000, price: 88000, status: 'available' });
+      const car = carRes.body.car;
+
+      const createRes = await request(app)
+        .post('/api/orders/admin')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          car_id: car.id,
+          order_type: 'purchase',
+          amount: 88000,
+          buyer_name: 'Any Snapshot Name',
+          buyer_email: 'BUYER@test.com'
+        });
+      expect(createRes.status).toBe(201);
+
+      const myOrdersRes = await request(app)
+        .get('/api/orders/me')
+        .set('Authorization', `Bearer ${buyerToken}`);
+
+      expect(myOrdersRes.status).toBe(200);
+      const matched = (myOrdersRes.body.orders || []).find((o) => o.id === createRes.body.order.id);
+      expect(matched).toBeTruthy();
+      expect(matched.user).toBeTruthy();
+      expect(matched.user.email).toBe('buyer@test.com');
+      expect(matched.buyer_email).toBe('buyer@test.com');
+      expect(matched.buyer_name).toBe('Buyer User');
+    });
+  });
+
   describe('GET /api/orders/admin/stats', () => {
     it('should return order statistics', async () => {
       const res = await request(app)
@@ -118,6 +184,7 @@ describe('Orders API', () => {
 
   describe('PUT /api/orders/:id', () => {
     it('should update order buyer info and deposit', async () => {
+      const testCar = await createAvailableCar();
       const createRes = await request(app)
         .post('/api/orders/admin')
         .set('Authorization', `Bearer ${sellerToken}`)
@@ -146,6 +213,7 @@ describe('Orders API', () => {
 
   describe('PUT /api/orders/:id/status', () => {
     it('should transition pending -> deposit_paid', async () => {
+      const testCar = await createAvailableCar();
       const createRes = await request(app)
         .post('/api/orders/admin')
         .set('Authorization', `Bearer ${sellerToken}`)
@@ -166,6 +234,7 @@ describe('Orders API', () => {
     });
 
     it('should reject invalid status transition', async () => {
+      const testCar = await createAvailableCar();
       const createRes = await request(app)
         .post('/api/orders/admin')
         .set('Authorization', `Bearer ${sellerToken}`)

@@ -1,10 +1,16 @@
 const request = require('supertest');
-const { app, sellerToken, buyerToken, testCar } = {
-  app: global._testApp,
-  sellerToken: global._sellerToken,
-  buyerToken: global._buyerToken,
-  testCar: global._testCar,
-};
+const fixtures = require('./fixtures');
+let app;
+let sellerToken;
+let buyerToken;
+let testCar;
+
+beforeAll(() => {
+  app = fixtures.app;
+  sellerToken = fixtures.sellerToken;
+  buyerToken = fixtures.buyerToken;
+  testCar = fixtures.testCar;
+});
 
 describe('Cars API', () => {
   describe('GET /api/cars', () => {

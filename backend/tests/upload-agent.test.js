@@ -1,11 +1,16 @@
 const request = require('supertest');
 const path = require('path');
 const fs = require('fs');
-const { app, sellerToken, testAgent } = {
-  app: global._testApp,
-  sellerToken: global._sellerToken,
-  testAgent: global._testAgent,
-};
+const fixtures = require('./fixtures');
+let app;
+let sellerToken;
+let testAgent;
+
+beforeAll(() => {
+  app = fixtures.app;
+  sellerToken = fixtures.sellerToken;
+  testAgent = fixtures.testAgent;
+});
 
 describe('Upload API', () => {
   const uploadsDir = path.join(__dirname, '../public/uploads');

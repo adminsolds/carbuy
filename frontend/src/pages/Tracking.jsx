@@ -10,6 +10,8 @@ function Tracking() {
   const [bids, setBids] = useState([]);
   const [orders, setOrders] = useState([]);
   const [activeTab, setActiveTab] = useState('orders');
+  const [orderSearch, setOrderSearch] = useState('');
+  const [orderStatus, setOrderStatus] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -70,6 +72,18 @@ function Tracking() {
     return steps.slice(0, currentIndex + 1);
   };
 
+  const filteredOrders = orders.filter((order) => {
+    if (orderStatus !== 'all' && order.status !== orderStatus) return false;
+    if (!orderSearch.trim()) return true;
+    const keyword = orderSearch.trim().toLowerCase();
+    const text = [
+      order.order_no,
+      order.car ? `${order.car.brand} ${order.car.model}` : '',
+      order.status,
+    ].join(' ').toLowerCase();
+    return text.includes(keyword);
+  });
+
   return (
     <div className="tracking">
       <div className="container">
@@ -98,14 +112,35 @@ function Tracking() {
             </div>
           ) : activeTab === 'orders' ? (
             <>
-              {orders.length === 0 ? (
+              <div className="order-filters">
+                <input
+                  type="text"
+                  value={orderSearch}
+                  onChange={(e) => setOrderSearch(e.target.value)}
+                  placeholder="Search by order number or car model"
+                />
+                <select value={orderStatus} onChange={(e) => setOrderStatus(e.target.value)}>
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="deposit_paid">Deposit Paid</option>
+                  <option value="paid">Paid</option>
+                  <option value="processing">Processing</option>
+                  <option value="shipped">Shipped</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="refunded">Refunded</option>
+                </select>
+              </div>
+
+              {filteredOrders.length === 0 ? (
                 <div className="empty-state">
-                  <p>You haven't placed any orders yet.</p>
+                  <p>{orders.length === 0 ? "You haven't placed any orders yet." : 'No matching orders found.'}</p>
                   <Link to="/cars" className="browse-btn">Browse Cars</Link>
                 </div>
               ) : (
                 <div className="orders-list">
-                  {orders.map((order) => {
+                  {filteredOrders.map((order) => {
                     const badge = getOrderBadge(order.status);
                     const completedSteps = formatStatusFlow(order.status);
                     return (
@@ -158,6 +193,12 @@ function Tracking() {
                         )}
 
                         <div className="order-details">
+                          {order.user && (
+                            <div className="detail-item">
+                              <span className="detail-label">Account</span>
+                              <span className="detail-value">{order.user.name} ({order.user.email})</span>
+                            </div>
+                          )}
                           {order.agent && (
                             <div className="detail-item">
                               <span className="detail-label">Agent</span>

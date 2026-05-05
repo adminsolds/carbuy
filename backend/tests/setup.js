@@ -73,5 +73,5 @@ beforeAll(async () => {
 }, 30000);
 
 afterAll(async () => {
-  await sequelize.close();
+  await db.close();
 });

@@ -1,8 +1,10 @@
 const request = require('supertest');
-const { app, sellerToken } = global._testApp ? {
-  app: global._testApp,
-  sellerToken: global._sellerToken,
-} : require('./fixtures');
+const fixtures = require('./fixtures');
+let app;
+
+beforeAll(() => {
+  app = fixtures.app;
+});
 
 describe('Auth API', () => {
   describe('POST /api/auth/register', () => {
@@ -72,7 +74,7 @@ describe('Auth API', () => {
 
   describe('GET /api/auth/me', () => {
     it('should return current user profile', async () => {
-      const token = global._sellerToken;
+      const token = fixtures.sellerToken;
       const res = await request(app)
         .get('/api/auth/me')
         .set('Authorization', `Bearer ${token}`);
