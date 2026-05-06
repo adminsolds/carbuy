@@ -4,13 +4,50 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-page: #f5f6f8;
+  --bg-surface: #ffffff;
+  --bg-soft: #f3f4f6;
+  --bg-muted: #eef2f7;
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+  --border-color: #e5e7eb;
+  --border-soft: #f3f4f6;
+  --header-bg: #ffffff;
+  --footer-bg: #fff7ed;
+  --footer-border: #fed7aa;
+  --accent-strong: #9a3412;
+  --accent-soft: #fdba74;
+  --accent-bg: #ffedd5;
+}
+
+[data-theme='dark'] {
+  --bg-page: #0b1220;
+  --bg-surface: #121c2e;
+  --bg-soft: #1b273a;
+  --bg-muted: #1e2d44;
+  --text-primary: #f3f4f6;
+  --text-secondary: #d1d5db;
+  --text-muted: #94a3b8;
+  --border-color: #2a3a53;
+  --border-soft: #243246;
+  --header-bg: #0f172a;
+  --footer-bg: #0f172a;
+  --footer-border: #2a3a53;
+  --accent-strong: #fb923c;
+  --accent-soft: #fb923c;
+  --accent-bg: #2c1a0f;
+}
+
 body {
   margin: 0;
   font-family: 'Space Grotesk', sans-serif;
-  background-color: #f5f6f8;
-  color: #1f2937;
+  background-color: var(--bg-page);
+  color: var(--text-secondary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 .material-symbols-outlined {
@@ -18,12 +55,12 @@ body {
 }
 
 ::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: #f3f4f6; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border: 2px solid #f3f4f6; }
+::-webkit-scrollbar-track { background: var(--bg-soft); }
+::-webkit-scrollbar-thumb { background: #64748b; border: 2px solid var(--bg-soft); }
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
 .machined-border {
-  border: 1px solid #273647;
+  border: 1px solid var(--border-color);
 }
 
 .inner-glow {
@@ -49,4 +86,106 @@ body {
 
 .font-space-grotesk {
   font-family: 'Space Grotesk', sans-serif;
+}
+
+[data-theme='dark'] .landing-page,
+[data-theme='dark'] .auth-page,
+[data-theme='dark'] .car-detail-ref,
+[data-theme='dark'] .tracking,
+[data-theme='dark'] .loan-calculator,
+[data-theme='dark'] .car-listing,
+[data-theme='dark'] .signup-page,
+[data-theme='dark'] .agent-page-ref,
+[data-theme='dark'] .admin-cars-page,
+[data-theme='dark'] .section-gray {
+  background: var(--bg-page);
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .auth-container,
+[data-theme='dark'] .signup-form-panel,
+[data-theme='dark'] .search-panel,
+[data-theme='dark'] .step-card,
+[data-theme='dark'] .landing-car-card,
+[data-theme='dark'] .car-card,
+[data-theme='dark'] .no-results,
+[data-theme='dark'] .detail-card,
+[data-theme='dark'] .side-card,
+[data-theme='dark'] .bid-card,
+[data-theme='dark'] .order-card,
+[data-theme='dark'] .empty-state,
+[data-theme='dark'] .tips-section,
+[data-theme='dark'] .calculator-form,
+[data-theme='dark'] .result-section,
+[data-theme='dark'] .info-section,
+[data-theme='dark'] .agent-search-card,
+[data-theme='dark'] .agent-info-box,
+[data-theme='dark'] .agent-result-card,
+[data-theme='dark'] .admin-panel,
+[data-theme='dark'] .admin-list,
+[data-theme='dark'] .card {
+  background: var(--bg-surface) !important;
+  color: var(--text-secondary);
+  border-color: var(--border-color) !important;
+}
+
+[data-theme='dark'] .search-input,
+[data-theme='dark'] .search-form input,
+[data-theme='dark'] .search-form select,
+[data-theme='dark'] .form-group input,
+[data-theme='dark'] .form-group select,
+[data-theme='dark'] .form-group textarea,
+[data-theme='dark'] .loan-fields input,
+[data-theme='dark'] .loan-fields select,
+[data-theme='dark'] .bid-input,
+[data-theme='dark'] .order-filters input,
+[data-theme='dark'] .order-filters select {
+  background: var(--bg-soft);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+[data-theme='dark'] .search-input::placeholder,
+[data-theme='dark'] input::placeholder,
+[data-theme='dark'] textarea::placeholder {
+  color: #93a3ba;
+}
+
+[data-theme='dark'] .section-title,
+[data-theme='dark'] .logo,
+[data-theme='dark'] .car-listing h1,
+[data-theme='dark'] .auth-container h1,
+[data-theme='dark'] .order-no,
+[data-theme='dark'] .detail-breadcrumb a,
+[data-theme='dark'] .detail-spec-item span,
+[data-theme='dark'] .loan-fields label,
+[data-theme='dark'] .detail-value,
+[data-theme='dark'] .car-info h3,
+[data-theme='dark'] .result-value {
+  color: var(--text-primary) !important;
+}
+
+[data-theme='dark'] .subtitle,
+[data-theme='dark'] .results-count,
+[data-theme='dark'] .detail-label,
+[data-theme='dark'] .footer-bottom,
+[data-theme='dark'] .footer-commitment,
+[data-theme='dark'] .auth-footer,
+[data-theme='dark'] .bid-date,
+[data-theme='dark'] .login-hint {
+  color: var(--text-muted) !important;
+}
+
+[data-theme='dark'] .detail-spec-wrap {
+  background: var(--bg-soft);
+}
+
+[data-theme='dark'] .detail-spec-item {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme='dark'] .car-details,
+[data-theme='dark'] .order-details {
+  border-top-color: var(--border-soft);
+  border-bottom-color: var(--border-soft);
 }

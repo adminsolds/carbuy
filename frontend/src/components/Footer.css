@@ -1,6 +1,6 @@
 .footer {
-  background: #fff7ed;
-  border-top: 1px solid #fed7aa;
+  background: var(--footer-bg);
+  border-top: 1px solid var(--footer-border);
   padding: 44px 0 30px;
 }
 
@@ -12,7 +12,7 @@
 .footer .logo {
   font-size: 1.15rem;
   font-weight: 800;
-  color: #111827;
+  color: var(--text-primary);
   text-decoration: none;
 }
 
@@ -20,7 +20,7 @@
   margin: 0 auto;
   max-width: 920px;
   text-align: center;
-  color: #374151;
+  color: var(--text-secondary);
   line-height: 1.7;
 }
 
@@ -34,10 +34,10 @@
 .footer-links a {
   display: block;
   text-align: center;
-  border: 1px solid #fdba74;
+  border: 1px solid var(--accent-soft);
   border-radius: 999px;
   padding: 10px 8px;
-  color: #9a3412;
+  color: var(--accent-strong);
   text-decoration: none;
   font-size: 0.8rem;
   font-weight: 700;
@@ -45,13 +45,13 @@
 }
 
 .footer-links a:hover {
-  background: #ffedd5;
+  background: var(--accent-bg);
 }
 
 .footer-bottom {
   margin: 20px 0 0;
   text-align: center;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 0.85rem;
 }
 

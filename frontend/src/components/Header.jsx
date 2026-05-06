@@ -1,12 +1,14 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import './Header.css';
 
 function Header() {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isAuthenticated, user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
 
   const handleLogout = () => {
     logout();
@@ -38,6 +40,10 @@ function Header() {
               <NavLink to="/admin/users" onClick={() => setIsMenuOpen(false)}>MANAGE USERS</NavLink>
             </>
           )}
+
+          <button type="button" className="btn-theme-toggle" onClick={toggleTheme}>
+            {isDark ? '☀ LIGHT' : '🌙 DARK'}
+          </button>
 
           {isAuthenticated ? (
             <button onClick={handleLogout} className="btn-logout">LOGOUT</button>
