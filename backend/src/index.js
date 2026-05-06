@@ -41,6 +41,18 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Unified error handler (including invalid JSON payload)
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ error: 'Invalid JSON payload.' });
+  }
+
+  if (res.headersSent) return next(err);
+
+  console.error('Unhandled server error:', err);
+  return res.status(err.status || 500).json({ error: 'Internal server error.' });
+});
+
 // Start server
 const startServer = async () => {
   try {
