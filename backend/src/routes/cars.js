@@ -76,10 +76,21 @@ router.get('/', async (req, res) => {
       }
       where.status = 'auction';
     } else if (status) {
-      if (status !== 'all') where.status = status;
+      if (status !== 'all') {
+        if (!auctionEnabled && status === 'available') {
+          // When auction is disabled, treat auction stock as direct-sale stock on frontend.
+          where.status = { [Op.in]: ['available', 'auction'] };
+        } else {
+          where.status = status;
+        }
+      }
     } else {
-      // Default: show only available and sold (exclude auction unless explicitly requested)
-      where.status = { [Op.in]: ['available', 'sold'] };
+      // Default sale scope:
+      // - auction enabled: available + sold
+      // - auction disabled: include auction stock in sale listings to avoid hidden inventory
+      where.status = auctionEnabled
+        ? { [Op.in]: ['available', 'sold'] }
+        : { [Op.in]: ['available', 'sold', 'auction'] };
     }
 
     // Sort
@@ -114,10 +125,21 @@ router.get('/', async (req, res) => {
       bids.forEach(b => { highestBids[b.car_id] = Number(b.amount); });
     }
 
-    const carsWithComputed = cars.map(car => ({
-      ...car.toJSON(),
-      highest_bid: highestBids[car.id] || null
-    }));
+    const normalizeAuctionToSale = !auctionEnabled && entry !== 'auction' && !includeAuction;
+    const carsWithComputed = cars.map((car) => {
+      const payload = {
+        ...car.toJSON(),
+        highest_bid: highestBids[car.id] || null
+      };
+
+      if (normalizeAuctionToSale && payload.status === 'auction') {
+        payload.status = 'available';
+        payload.auction_end_time = null;
+        payload.starting_bid = null;
+      }
+
+      return payload;
+    });
 
     res.json({
       cars: carsWithComputed,
@@ -147,7 +169,9 @@ router.get('/brands', async (req, res) => {
     } else if (isAuctionEntry) {
       where.status = 'auction';
     } else {
-      where.status = { [Op.in]: ['available', 'sold'] };
+      where.status = auctionEnabled
+        ? { [Op.in]: ['available', 'sold'] }
+        : { [Op.in]: ['available', 'sold', 'auction'] };
     }
 
     const brands = await Car.findAll({

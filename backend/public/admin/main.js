@@ -62,6 +62,21 @@ const roleLabel = (role) => {
   return 'User';
 };
 
+function isTokenLikelyUsable(token) {
+  if (!token || typeof token !== 'string') return false;
+  const parts = token.split('.');
+  if (parts.length !== 3) return false;
+  try {
+    const payload = JSON.parse(atob(parts[1]));
+    if (!payload || typeof payload !== 'object') return false;
+    if (!payload.exp) return true;
+    const now = Math.floor(Date.now() / 1000);
+    return payload.exp > now;
+  } catch {
+    return false;
+  }
+}
+
 function getAllowedSections() {
   const role = S.user?.role || '';
   return ROLE_SECTION_ACCESS[role] || [];
@@ -420,16 +435,34 @@ async function loadSettings() {
 function refreshAuctionUI() {
   const badge = document.getElementById('auctionBadge');
   const btn = document.getElementById('toggleAuctionBtn');
-  if (!badge || !btn) return;
-  badge.textContent = S.auctionEnabled ? 'Enabled' : 'Disabled';
-  badge.className = `badge ${S.auctionEnabled ? 'badge-success' : 'badge-secondary'}`;
-  btn.textContent = S.auctionEnabled ? 'Disable' : 'Enable';
+  const settingsStatus = document.getElementById('settingsAuctionStatus');
+  const settingsBtn = document.getElementById('settingsToggleBtn');
+
+  if (badge) {
+    badge.textContent = S.auctionEnabled ? 'Enabled' : 'Disabled';
+    badge.className = `badge ${S.auctionEnabled ? 'badge-success' : 'badge-secondary'}`;
+  }
+  if (btn) {
+    btn.textContent = S.auctionEnabled ? 'Disable' : 'Enable';
+  }
+  if (settingsStatus) {
+    settingsStatus.textContent = S.auctionEnabled ? 'Enabled' : 'Disabled';
+  }
+  if (settingsBtn) {
+    settingsBtn.textContent = S.auctionEnabled ? 'Disable Auction' : 'Enable Auction';
+  }
 }
 
-async function toggleAuction() {
+async function toggleAuction(triggerId = null) {
+  const primaryBtn = document.getElementById('toggleAuctionBtn');
+  const settingsBtn = document.getElementById('settingsToggleBtn');
+  const trigger = triggerId ? document.getElementById(triggerId) : null;
+
   try {
-    btn = document.getElementById('toggleAuctionBtn');
-    btn.disabled = true;
+    if (primaryBtn) primaryBtn.disabled = true;
+    if (settingsBtn) settingsBtn.disabled = true;
+    if (trigger) trigger.classList.add('loading');
+
     const d = await api('/api/settings/auction-enabled', {
       method: 'PUT', body: JSON.stringify({ enabled: !S.auctionEnabled })
     });
@@ -437,7 +470,11 @@ async function toggleAuction() {
     refreshAuctionUI();
     msg(S.auctionEnabled ? 'Auction system enabled.' : 'Auction system disabled.');
   } catch (e) { msg(e.message, 'error'); }
-  finally { document.getElementById('toggleAuctionBtn').disabled = false; }
+  finally {
+    if (primaryBtn) primaryBtn.disabled = false;
+    if (settingsBtn) settingsBtn.disabled = false;
+    if (trigger) trigger.classList.remove('loading');
+  }
 }
 
 // ─── Inventory ─────────────────────────────────────────────────────────────────
@@ -1247,6 +1284,11 @@ async function bootstrap() {
     showLogin('');
     return;
   }
+  if (!isTokenLikelyUsable(S.token)) {
+    clearSession();
+    showLogin('Session expired. Please sign in again.');
+    return;
+  }
   try {
     await api('/api/auth/me');
   } catch {
@@ -1306,7 +1348,8 @@ document.querySelectorAll('.nav-item').forEach(el => {
 });
 
 // ─── Event: Toggle Auction ─────────────────────────────────────────────────────
-document.getElementById('toggleAuctionBtn').addEventListener('click', toggleAuction);
+document.getElementById('toggleAuctionBtn')?.addEventListener('click', () => toggleAuction('toggleAuctionBtn'));
+document.getElementById('settingsToggleBtn')?.addEventListener('click', () => toggleAuction('settingsToggleBtn'));
 
 // ─── Event: SMTP Form ─────────────────────────────────────────────────────────
 document.getElementById('smtpForm').addEventListener('submit', async (e) => {
