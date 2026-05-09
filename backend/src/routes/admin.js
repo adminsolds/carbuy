@@ -73,8 +73,8 @@ router.put('/users/:id/role', async (req, res) => {
     const { id } = req.params;
     const { role } = req.body;
 
-    if (!['buyer', 'seller'].includes(role)) {
-      return res.status(400).json({ error: 'Role must be buyer or seller.' });
+    if (!['buyer', 'seller', 'agent'].includes(role)) {
+      return res.status(400).json({ error: 'Role must be buyer, seller, or agent.' });
     }
 
     const targetUser = await User.findByPk(id);
@@ -158,6 +158,7 @@ router.get('/stats', async (req, res) => {
       totalUsers,
       totalBuyers,
       totalSellers,
+      totalAgents,
       totalCars,
       totalAvailable,
       totalAuction,
@@ -167,6 +168,7 @@ router.get('/stats', async (req, res) => {
       User.count(),
       User.count({ where: { role: 'buyer' } }),
       User.count({ where: { role: 'seller' } }),
+      User.count({ where: { role: 'agent' } }),
       Car.count({ where: { is_deleted: false } }),
       Car.count({ where: { status: 'available', is_deleted: false } }),
       Car.count({ where: { status: 'auction', is_deleted: false } }),
@@ -176,7 +178,7 @@ router.get('/stats', async (req, res) => {
 
     res.json({
       stats: {
-        users: { total: totalUsers, buyers: totalBuyers, sellers: totalSellers },
+        users: { total: totalUsers, buyers: totalBuyers, sellers: totalSellers, agents: totalAgents },
         cars: { total: totalCars, available: totalAvailable, auction: totalAuction, sold: totalSold },
         bids: { total: totalBids }
       }

@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const { Order, User, Car, Agent } = require('../models');
 const auth = require('../middleware/auth');
 const authorize = require('../middleware/authorize');
+const agentPermission = require('../middleware/agentPermission');
 
 const router = express.Router();
 
@@ -362,7 +363,7 @@ router.get('/lookup', async (req, res) => {
   }
 });
 
-router.get('/admin/list', auth, authorize('seller'), async (req, res) => {
+router.get('/admin/list', auth, authorize('seller', 'agent'), async (req, res) => {
   try {
     const {
       search, status, order_type,
@@ -409,7 +410,7 @@ router.get('/admin/list', auth, authorize('seller'), async (req, res) => {
 });
 
 // ─── Admin: Get single order ──────────────────────────────────────────────────
-router.get('/:id', auth, authorize('seller'), async (req, res) => {
+router.get('/:id', auth, authorize('seller', 'agent'), async (req, res) => {
   try {
     const order = await Order.findByPk(req.params.id, {
       include: [
@@ -427,7 +428,7 @@ router.get('/:id', auth, authorize('seller'), async (req, res) => {
 });
 
 // ─── Admin: Update order status ───────────────────────────────────────────────
-router.put('/:id/status', auth, authorize('seller'), async (req, res) => {
+router.put('/:id/status', auth, authorize('seller', 'agent'), agentPermission('update_order_status'), async (req, res) => {
   try {
     const { status: newStatus, notes } = req.body;
     const order = await Order.findByPk(req.params.id);
@@ -529,7 +530,7 @@ router.put('/:id', auth, authorize('seller'), async (req, res) => {
 });
 
 // ─── Admin: Get order stats ─────────────────────────────────────────────────────
-router.get('/admin/stats', auth, authorize('seller'), async (req, res) => {
+router.get('/admin/stats', auth, authorize('seller', 'agent'), async (req, res) => {
   try {
     const [
       total, pending, deposit_paid, paid, processing,

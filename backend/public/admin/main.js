@@ -25,6 +25,13 @@ const S = {
   carUploadedImages: [],
   aucUploadedImages: [],
 };
+const DEFAULT_AGENT_AVATAR = '/uploads/default-agent-avatar.svg';
+let hasHandledUnauthorized = false;
+const ADMIN_PANEL_ROLES = ['seller', 'agent'];
+const ROLE_SECTION_ACCESS = {
+  seller: ['dashboard', 'inventory', 'auction', 'agents', 'orders', 'users', 'settings'],
+  agent: ['dashboard', 'inventory', 'orders']
+};
 
 const byId = (id) => document.getElementById(id);
 const setText = (id, value) => {
@@ -40,6 +47,29 @@ const setTextFirst = (ids, value) => {
     }
   }
 };
+const normalizeAgentAvatar = (url) => (typeof url === 'string' && url.trim() ? url.trim() : DEFAULT_AGENT_AVATAR);
+
+function renderAgentAvatarPreview(url) {
+  const preview = byId('agentAvatarPreviewImg');
+  const input = byId('agentAvatarUrl');
+  const finalUrl = normalizeAgentAvatar(url);
+  if (preview) preview.src = finalUrl;
+  if (input) input.value = finalUrl;
+}
+const roleLabel = (role) => {
+  if (role === 'seller') return 'Admin';
+  if (role === 'agent') return 'Agent';
+  return 'User';
+};
+
+function getAllowedSections() {
+  const role = S.user?.role || '';
+  return ROLE_SECTION_ACCESS[role] || [];
+}
+
+function canAccessSection(section) {
+  return getAllowedSections().includes(section);
+}
 
 // ─── API helper ────────────────────────────────────────────────────────────────
 async function api(path, opts = {}) {
@@ -47,6 +77,14 @@ async function api(path, opts = {}) {
   if (S.token) hdrs.Authorization = `Bearer ${S.token}`;
   const r = await fetch(path, { ...opts, headers: hdrs });
   const d = await r.json().catch(() => ({}));
+  if (r.status === 401) {
+    if (!hasHandledUnauthorized) {
+      hasHandledUnauthorized = true;
+      clearSession();
+      showLogin('Session expired. Please sign in again.');
+      setTimeout(() => { hasHandledUnauthorized = false; }, 1500);
+    }
+  }
   if (!r.ok) throw new Error(d.error || `Request failed (${r.status})`);
   return d;
 }
@@ -67,6 +105,7 @@ async function uploadImages(files) {
 
 function renderUploadedImages(containerId, images, stateKey, removeFn) {
   const container = document.getElementById(containerId);
+  if (!container) return;
   container.innerHTML = images.map((url, i) => `
     <div class="uploaded-image">
       <img src="${url}" alt="Uploaded ${i + 1}" />
@@ -75,12 +114,25 @@ function renderUploadedImages(containerId, images, stateKey, removeFn) {
   `).join('');
 }
 
+const uploadUiIdMap = {
+  uploadDropzone: { progress: 'uploadProgress', fill: 'progressFill', status: 'uploadStatus' },
+  aucUploadDropzone: { progress: 'aucUploadProgress', fill: 'aucProgressFill', status: 'aucUploadStatus' },
+};
+
+function getUploadUiIds(dropzoneId) {
+  const mapped = uploadUiIdMap[dropzoneId];
+  if (mapped) return mapped;
+  return {
+    progress: dropzoneId.replace('Dropzone', 'UploadProgress'),
+    fill: dropzoneId.replace('Dropzone', 'ProgressFill'),
+    status: dropzoneId.replace('Dropzone', 'UploadStatus'),
+  };
+}
+
 function setupDropzone(dropzoneId, inputId, imagesStateKey, containerId) {
   const dropzone = document.getElementById(dropzoneId);
   const input = document.getElementById(inputId);
-  const progress = document.getElementById(progressId(dropzoneId));
-  const fill = document.getElementById(fillId(dropzoneId));
-  const status = document.getElementById(statusId(dropzoneId));
+  if (!dropzone || !input) return;
 
   dropzone.addEventListener('click', () => input.click());
 
@@ -107,23 +159,20 @@ function setupDropzone(dropzoneId, inputId, imagesStateKey, containerId) {
   });
 }
 
-function progressId(dropzoneId) { return dropzoneId.replace('Dropzone', 'UploadProgress'); }
-function fillId(dropzoneId) { return dropzoneId.replace('Dropzone', 'ProgressFill'); }
-function statusId(dropzoneId) { return dropzoneId.replace('Dropzone', 'UploadStatus'); }
-
 async function handleImageFiles(files, stateKey, containerId, dropzoneId) {
-  const progress = document.getElementById(progressId(dropzoneId));
-  const fill = document.getElementById(fillId(dropzoneId));
-  const status = document.getElementById(statusId(dropzoneId));
+  const ids = getUploadUiIds(dropzoneId);
+  const progress = document.getElementById(ids.progress);
+  const fill = document.getElementById(ids.fill);
+  const status = document.getElementById(ids.status);
 
-  progress.classList.remove('hidden');
-  fill.style.width = '30%';
-  status.textContent = 'Uploading...';
+  if (progress) progress.classList.remove('hidden');
+  if (fill) fill.style.width = '30%';
+  if (status) status.textContent = 'Uploading...';
 
   try {
     const urls = await uploadImages(files);
-    fill.style.width = '100%';
-    status.textContent = 'Upload complete!';
+    if (fill) fill.style.width = '100%';
+    if (status) status.textContent = 'Upload complete!';
 
     if (stateKey === 'carUploadedImages') {
       S.carUploadedImages.push(...urls);
@@ -133,10 +182,10 @@ async function handleImageFiles(files, stateKey, containerId, dropzoneId) {
       renderUploadedImages('aucUploadedImages', S.aucUploadedImages, 'aucUploadedImages');
     }
   } catch (err) {
-    status.textContent = err.message;
+    if (status) status.textContent = err.message;
   } finally {
-    setTimeout(() => progress.classList.add('hidden'), 2000);
-    fill.style.width = '0%';
+    if (progress) setTimeout(() => progress.classList.add('hidden'), 2000);
+    if (fill) fill.style.width = '0%';
   }
 }
 
@@ -150,10 +199,40 @@ function removeUploadedImage(url, stateKey) {
   }
 }
 
+async function uploadAgentAvatar(file) {
+  if (!file) return;
+  const btn = byId('agentAvatarUploadBtn');
+  const input = byId('agentAvatarFile');
+  try {
+    if (btn) btn.disabled = true;
+    const urls = await uploadImages([file]);
+    if (urls?.[0]) {
+      renderAgentAvatarPreview(urls[0]);
+      msg('Avatar uploaded successfully.');
+    }
+  } catch (err) {
+    msg(err.message || 'Avatar upload failed.', 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+    if (input) input.value = '';
+  }
+}
+
 // Init dropzones after DOM loads
 document.addEventListener('DOMContentLoaded', () => {
   setupDropzone('uploadDropzone', 'carImageInput', 'carUploadedImages', 'uploadedImages');
   setupDropzone('aucUploadDropzone', 'aucImageInput', 'aucUploadedImages', 'aucUploadedImages');
+  renderAgentAvatarPreview(DEFAULT_AGENT_AVATAR);
+
+  byId('agentAvatarUploadBtn')?.addEventListener('click', () => byId('agentAvatarFile')?.click());
+  byId('agentAvatarDefaultBtn')?.addEventListener('click', () => renderAgentAvatarPreview(DEFAULT_AGENT_AVATAR));
+  byId('agentAvatarFile')?.addEventListener('change', async (e) => {
+    const file = e.target?.files?.[0];
+    await uploadAgentAvatar(file);
+  });
+  byId('agentAvatarUrl')?.addEventListener('input', (e) => {
+    renderAgentAvatarPreview(e.target.value);
+  });
 
   // Event delegation for remove image buttons (they are dynamically created)
   document.addEventListener('click', (e) => {
@@ -177,20 +256,60 @@ function showAdmin() {
   byId('loginScreen')?.classList.add('hidden');
   byId('adminLayout')?.classList.remove('hidden');
   setText('sidebarUserName', S.user?.name || '-');
-  setText('sidebarUserRole', S.user?.role || '-');
+  setText('sidebarUserRole', roleLabel(S.user?.role) || '-');
   setText('sidebarUserInitials', (S.user?.name || '-').charAt(0).toUpperCase());
   setTextFirst(['settingsUserName', 'settingsName'], S.user?.name || '-');
   setTextFirst(['settingsUserEmail', 'settingsEmail'], S.user?.email || '-');
-  setTextFirst(['settingsUserRole', 'settingsRole'], S.user?.role || '-');
+  setTextFirst(['settingsUserRole', 'settingsRole'], roleLabel(S.user?.role) || '-');
+  if (byId('accountName')) byId('accountName').value = S.user?.name || '';
+  if (byId('accountEmail')) byId('accountEmail').value = S.user?.email || '';
+  if (byId('accountPhone')) byId('accountPhone').value = S.user?.phone || '';
+  applyRolePermissions();
+}
+
+function applyRolePermissions() {
+  const allowed = new Set(getAllowedSections());
+  const isSeller = S.user?.role === 'seller';
+
+  document.querySelectorAll('.nav-item').forEach((item) => {
+    const section = item.dataset.section;
+    const permitted = allowed.has(section);
+    item.classList.toggle('hidden', !permitted);
+  });
+
+  if (!allowed.has('users')) {
+    byId('section-users')?.classList.add('hidden');
+  }
+  if (!allowed.has('settings')) {
+    byId('section-settings')?.classList.add('hidden');
+  }
+  if (!allowed.has('agents')) {
+    byId('section-agents')?.classList.add('hidden');
+  }
+  byId('qaAddVehicleBtn')?.classList.toggle('hidden', !allowed.has('inventory'));
+  byId('qaAddAgentBtn')?.classList.toggle('hidden', !isSeller);
+  byId('qaAuctionBtn')?.classList.toggle('hidden', !allowed.has('auction'));
+  byId('qaOrdersBtn')?.classList.toggle('hidden', !allowed.has('orders'));
+  byId('createOrderBtn')?.classList.toggle('hidden', !isSeller);
+  byId('accountSettingsBtn')?.classList.toggle('hidden', !isSeller);
+  if (!isSeller) {
+    byId('orderFormPanel')?.classList.add('hidden');
+  }
 }
 
 function showSection(name) {
+  const allowed = getAllowedSections();
+  if (!allowed.includes(name)) {
+    const fallback = allowed[0] || 'dashboard';
+    name = fallback;
+  }
   document.querySelectorAll('.content-section').forEach(el => el.classList.add('hidden'));
   document.getElementById(`section-${name}`).classList.remove('hidden');
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.querySelector(`.nav-item[data-section="${name}"]`)?.classList.add('active');
   const titles = { dashboard: 'Dashboard', inventory: 'Car Inventory', auction: 'Auction Vehicles', agents: 'Agents', orders: 'Orders', users: 'Users', settings: 'Settings' };
   document.getElementById('sectionTitle').textContent = titles[name] || name;
+  return name;
 }
 
 function msg(text, type = 'success', duration = 3500) {
@@ -208,6 +327,7 @@ function setSession(token, user) {
   S.token = token; S.user = user;
   localStorage.setItem('admin_token', token);
   localStorage.setItem('admin_user', JSON.stringify(user));
+  hasHandledUnauthorized = false;
 }
 
 function clearSession() {
@@ -219,9 +339,10 @@ function clearSession() {
 // ─── Dashboard ─────────────────────────────────────────────────────────────────
 async function loadDashboard() {
   try {
+    const canReadAdminStats = S.user?.role === 'seller';
     const [carStats, userStats, orderStats] = await Promise.all([
-      api('/api/admin/stats').catch(() => ({})),
-      api('/api/admin/users?limit=1').catch(() => ({})),
+      canReadAdminStats ? api('/api/admin/stats').catch(() => ({})) : Promise.resolve({}),
+      canReadAdminStats ? api('/api/admin/users?limit=1').catch(() => ({})) : Promise.resolve({}),
       api('/api/orders/admin/stats').catch(() => ({})),
     ]);
 
@@ -246,7 +367,7 @@ async function loadDashboard() {
         <div class="stat-icon purple">👥</div>
         <div class="stat-label">Total Users</div>
         <div class="stat-value">${us.total ?? '-'}</div>
-        <div class="stat-sub">Registered members</div>
+        <div class="stat-sub">${us.buyers ?? 0} buyers · ${us.sellers ?? 0} sellers · ${us.agents ?? 0} agents</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon green">📋</div>
@@ -323,6 +444,7 @@ async function toggleAuction() {
 async function loadInventory(page = 1) {
   S.invPage = page;
   try {
+    const canReadAdminStats = S.user?.role === 'seller';
     const params = new URLSearchParams({
       limit: S.invLimit, offset: (S.invPage - 1) * S.invLimit,
       sortBy: document.getElementById('invSortBy')?.value || 'createdAt',
@@ -338,7 +460,7 @@ async function loadInventory(page = 1) {
 
     const [d, statsData] = await Promise.all([
       api(`/api/cars?${params}`),
-      api('/api/admin/stats').catch(() => ({})),
+      canReadAdminStats ? api('/api/admin/stats').catch(() => ({})) : Promise.resolve({}),
     ]);
     S.invTotal = Number(d.total || 0);
     renderInventoryTable(d.cars || []);
@@ -478,13 +600,14 @@ async function submitCar(e) {
 async function loadAuction(page = 1) {
   S.aucPage = page;
   try {
+    const canReadAdminStats = S.user?.role === 'seller';
     const params = new URLSearchParams({
       limit: S.aucLimit, offset: (S.aucPage - 1) * S.aucLimit,
       sortBy: 'createdAt', sortOrder: 'DESC', status: 'auction', includeAuction: '1'
     });
     const [d, statsData] = await Promise.all([
       api(`/api/cars?${params}`),
-      api('/api/admin/stats').catch(() => ({})),
+      canReadAdminStats ? api('/api/admin/stats').catch(() => ({})) : Promise.resolve({}),
     ]);
     S.aucTotal = Number(d.total || 0);
     renderAuctionTable(d.cars || []);
@@ -627,18 +750,25 @@ async function loadAgents(page = 1) {
 function renderAgentTable(agents) {
   const tb = document.getElementById('agentTable');
   if (!agents.length) {
-    tb.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#64748b;padding:24px">No agents found.</td></tr>';
+    tb.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#64748b;padding:24px">No agents found.</td></tr>';
     return;
   }
   tb.innerHTML = agents.map(a => `
     <tr>
       <td><strong>#${a.id}</strong></td>
+      <td><img class="agent-avatar-cell" src="${normalizeAgentAvatar(a.avatar_url)}" alt="${a.name || 'Agent'}" /></td>
       <td>${a.code}</td>
       <td>${a.name}</td>
       <td>${a.email || '-'}</td>
       <td>${a.phone || '-'}</td>
       <td>${a.company || '-'}</td>
       <td><span class="status-pill pill-${a.is_active ? 'active' : 'inactive'}">${a.is_active ? 'Active' : 'Inactive'}</span></td>
+      <td><span class="status-pill pill-${a.access_enabled ? 'active' : 'inactive'}">${a.access_enabled ? 'Granted' : 'No Access'}</span></td>
+      <td>
+        <button class="btn-primary btn-sm" data-agent-access="${a.id}" data-agent-access-next="${a.access_enabled ? 'false' : 'true'}">
+          ${a.access_enabled ? 'Revoke Access' : 'Grant Access'}
+        </button>
+      </td>
       <td>
         <div class="row-actions">
           <button class="btn-edit" data-agent-edit="${a.id}">Edit</button>
@@ -674,6 +804,12 @@ function resetAgentForm() {
   document.getElementById('agentFormTitle').textContent = 'Add New Agent';
   document.getElementById('agentFormMsg').textContent = '';
   document.getElementById('agentActive').value = 'true';
+  document.getElementById('agentAccessEnabled').value = 'false';
+  document.getElementById('agentAccessPassword').value = '';
+  document.getElementById('agentPermAddCar').checked = true;
+  document.getElementById('agentPermEditCar').checked = true;
+  document.getElementById('agentPermUpdateOrder').checked = true;
+  renderAgentAvatarPreview(DEFAULT_AGENT_AVATAR);
 }
 
 async function submitAgent(e) {
@@ -684,19 +820,42 @@ async function submitAgent(e) {
     email: document.getElementById('agentEmail').value.trim() || null,
     phone: document.getElementById('agentPhone').value.trim() || null,
     company: document.getElementById('agentCompany').value.trim() || null,
+    avatar_url: normalizeAgentAvatar(document.getElementById('agentAvatarUrl')?.value),
     address: document.getElementById('agentAddress').value.trim() || null,
     is_active: document.getElementById('agentActive').value === 'true',
     notes: document.getElementById('agentNotes').value.trim() || null,
+    can_add_car: document.getElementById('agentPermAddCar')?.checked !== false,
+    can_edit_car: document.getElementById('agentPermEditCar')?.checked !== false,
+    can_update_order_status: document.getElementById('agentPermUpdateOrder')?.checked !== false,
   };
+  const shouldEnableAccess = document.getElementById('agentAccessEnabled')?.value === 'true';
+  const accessPassword = document.getElementById('agentAccessPassword')?.value?.trim() || '';
 
   try {
     const editId = document.getElementById('agentEditId').value;
+    let agentId = editId;
     if (editId) {
       await api(`/api/agent/${editId}`, { method: 'PUT', body: JSON.stringify(payload) });
       msg(`Agent updated successfully.`);
     } else {
-      await api('/api/agent', { method: 'POST', body: JSON.stringify(payload) });
+      const created = await api('/api/agent', { method: 'POST', body: JSON.stringify(payload) });
+      agentId = created?.agent?.id;
       msg(`Agent created successfully.`);
+    }
+    if (agentId) {
+      const accessRes = await api(`/api/agent/${agentId}/access`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          enabled: shouldEnableAccess,
+          password: accessPassword || undefined,
+          can_add_car: payload.can_add_car,
+          can_edit_car: payload.can_edit_car,
+          can_update_order_status: payload.can_update_order_status
+        })
+      });
+      if (accessRes?.temporary_password) {
+        msg(`Agent access granted. Temporary password: ${accessRes.temporary_password}`);
+      }
     }
     hideAgentForm();
     await loadAgents();
@@ -1028,10 +1187,9 @@ async function loadUsers(page = 1) {
       sortOrder: document.getElementById('userSortOrder')?.value || 'DESC',
     });
     const s = document.getElementById('userSearch')?.value.trim();
-    const r = document.getElementById('userRole')?.value;
     const a = document.getElementById('userActive')?.value;
     if (s) params.set('search', s);
-    if (r && r !== 'all') params.set('role', r);
+    params.set('role', 'buyer');
     if (a && a !== 'all') params.set('is_active', a);
 
     const d = await api(`/api/admin/users?${params}`);
@@ -1044,7 +1202,7 @@ async function loadUsers(page = 1) {
 function renderUserTable(users) {
   const tb = document.getElementById('userTable');
   if (!users.length) {
-    tb.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#64748b;padding:24px">No users found.</td></tr>';
+    tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#64748b;padding:24px">No users found.</td></tr>';
     return;
   }
   tb.innerHTML = users.map(u => `
@@ -1053,7 +1211,6 @@ function renderUserTable(users) {
       <td>${u.name || '-'}</td>
       <td>${u.email || '-'}</td>
       <td>${u.phone || '-'}</td>
-      <td><span class="status-pill pill-${u.role}">${u.role}</span></td>
       <td><span class="status-pill pill-${u.is_active ? 'active' : 'inactive'}">${u.is_active ? 'Active' : 'Inactive'}</span></td>
       <td>${new Date(u.createdAt).toLocaleDateString('en-MY')}</td>
       <td>
@@ -1086,13 +1243,20 @@ function startClock() {
 // ─── Bootstrap ─────────────────────────────────────────────────────────────────
 async function bootstrap() {
   startClock();
-  if (!S.token || !S.user || S.user.role !== 'seller') {
+  if (!S.token || !S.user || !ADMIN_PANEL_ROLES.includes(S.user.role)) {
     showLogin('');
+    return;
+  }
+  try {
+    await api('/api/auth/me');
+  } catch {
     return;
   }
   showAdmin();
   showSection('dashboard');
-  await loadSettings();
+  if (S.user?.role === 'seller') {
+    await loadSettings();
+  }
   await loadDashboard();
 }
 
@@ -1103,11 +1267,13 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   const password = document.getElementById('password').value;
   try {
     const d = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-    if (d.user?.role !== 'seller') { showLogin('Only seller accounts can access admin.'); clearSession(); return; }
+    if (!ADMIN_PANEL_ROLES.includes(d.user?.role)) { showLogin('Only admin/agent accounts can access admin.'); clearSession(); return; }
     setSession(d.token, d.user);
     showAdmin();
     showSection('dashboard');
-    await loadSettings();
+    if (S.user?.role === 'seller') {
+      await loadSettings();
+    }
     await loadDashboard();
   } catch (err) { showLogin(err.message); }
 });
@@ -1117,12 +1283,19 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   clearSession(); showLogin('Logged out.');
 });
 
+document.getElementById('accountSettingsBtn')?.addEventListener('click', () => {
+  const section = showSection('settings');
+  if (section === 'settings') {
+    loadSettings();
+  }
+});
+
 // ─── Event: Nav ────────────────────────────────────────────────────────────────
 document.querySelectorAll('.nav-item').forEach(el => {
   el.addEventListener('click', (e) => {
     e.preventDefault();
-    const name = el.dataset.section;
-    showSection(name);
+    const requested = el.dataset.section;
+    const name = showSection(requested);
     if (name === 'dashboard') loadDashboard();
     if (name === 'inventory') loadInventory(1);
     if (name === 'auction') loadAuction(1);
@@ -1171,6 +1344,58 @@ document.getElementById('smtpTestBtn').addEventListener('click', async () => {
   } catch (e) {
     document.getElementById('smtpMsg').textContent = 'Failed: ' + e.message;
     document.getElementById('smtpMsg').className = 'form-msg error';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('accountForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = byId('accountSaveBtn');
+  const msgEl = byId('accountMsg');
+  if (!btn || !msgEl) return;
+  btn.disabled = true;
+  msgEl.textContent = '';
+  try {
+    const payload = {
+      name: byId('accountName')?.value?.trim(),
+      email: byId('accountEmail')?.value?.trim(),
+      phone: byId('accountPhone')?.value?.trim() || null
+    };
+    const d = await api('/api/auth/account', { method: 'PUT', body: JSON.stringify(payload) });
+    if (d.token && d.user) {
+      setSession(d.token, d.user);
+      showAdmin();
+    }
+    msgEl.textContent = 'Account updated successfully.';
+    msgEl.className = 'form-msg';
+  } catch (err) {
+    msgEl.textContent = err.message;
+    msgEl.className = 'form-msg error';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('passwordForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = byId('passwordSaveBtn');
+  const msgEl = byId('passwordMsg');
+  if (!btn || !msgEl) return;
+  btn.disabled = true;
+  msgEl.textContent = '';
+  try {
+    const payload = {
+      currentPassword: byId('currentPassword')?.value || '',
+      newPassword: byId('newPassword')?.value || ''
+    };
+    await api('/api/auth/change-password', { method: 'POST', body: JSON.stringify(payload) });
+    if (byId('passwordForm')) byId('passwordForm').reset();
+    msgEl.textContent = 'Password updated successfully.';
+    msgEl.className = 'form-msg';
+  } catch (err) {
+    msgEl.textContent = err.message;
+    msgEl.className = 'form-msg error';
   } finally {
     btn.disabled = false;
   }
@@ -1281,8 +1506,30 @@ document.getElementById('auctionTable').addEventListener('click', async (e) => {
 
 // ─── Event: Agent Table Click ─────────────────────────────────────────────────
 document.getElementById('agentTable').addEventListener('click', async (e) => {
+  const accessId = e.target.getAttribute('data-agent-access');
+  const accessNext = e.target.getAttribute('data-agent-access-next');
   const editId = e.target.getAttribute('data-agent-edit');
   const deleteId = e.target.getAttribute('data-agent-delete');
+
+  if (accessId) {
+    try {
+      let password = '';
+      if (accessNext === 'true') {
+        password = prompt('Set initial password for agent access (leave blank for auto-generated password):') || '';
+      }
+      const d = await api(`/api/agent/${accessId}/access`, {
+        method: 'PUT',
+        body: JSON.stringify({ enabled: accessNext === 'true', password: password.trim() || undefined })
+      });
+      if (d?.temporary_password) {
+        msg(`Access granted. Temporary password: ${d.temporary_password}`);
+      } else {
+        msg(accessNext === 'true' ? 'Agent access granted.' : 'Agent access revoked.');
+      }
+      await loadAgents(S.agentPage);
+    } catch (err) { msg(err.message, 'error'); }
+    return;
+  }
 
   if (editId) {
     try {
@@ -1295,9 +1542,15 @@ document.getElementById('agentTable').addEventListener('click', async (e) => {
       document.getElementById('agentEmail').value = a.email || '';
       document.getElementById('agentPhone').value = a.phone || '';
       document.getElementById('agentCompany').value = a.company || '';
+      renderAgentAvatarPreview(a.avatar_url || DEFAULT_AGENT_AVATAR);
       document.getElementById('agentAddress').value = a.address || '';
       document.getElementById('agentActive').value = a.is_active ? 'true' : 'false';
       document.getElementById('agentNotes').value = a.notes || '';
+      document.getElementById('agentAccessEnabled').value = a.access_enabled ? 'true' : 'false';
+      document.getElementById('agentAccessPassword').value = '';
+      document.getElementById('agentPermAddCar').checked = a.can_add_car !== false;
+      document.getElementById('agentPermEditCar').checked = a.can_edit_car !== false;
+      document.getElementById('agentPermUpdateOrder').checked = a.can_update_order_status !== false;
       document.getElementById('agentSaveBtn').textContent = 'Update Agent';
       document.getElementById('agentFormTitle').textContent = `Edit Agent ${a.code}`;
       showAgentForm();

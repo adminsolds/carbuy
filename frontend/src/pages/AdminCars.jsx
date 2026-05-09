@@ -54,7 +54,8 @@ function AdminCars() {
     pageSize: 10,
   });
 
-  const isSeller = user?.role === 'seller';
+  const canManageCars = ['seller', 'agent'].includes(user?.role);
+  const canManageSettings = user?.role === 'seller';
 
   const pageTitle = useMemo(
     () => (editingId ? `Edit Car #${editingId}` : 'Create New Car'),
@@ -118,15 +119,17 @@ function AdminCars() {
       navigate('/login');
       return;
     }
-    if (!isSeller) return;
-    fetchStats();
-    fetchSettings();
-  }, [isAuthenticated, isSeller, navigate]);
+    if (!canManageCars) return;
+    if (canManageSettings) {
+      fetchStats();
+      fetchSettings();
+    }
+  }, [isAuthenticated, canManageCars, canManageSettings, navigate]);
 
   useEffect(() => {
-    if (!isSeller) return;
+    if (!canManageCars) return;
     fetchCars();
-  }, [isSeller, filter.page, filter.pageSize, filter.status, filter.sortBy, filter.sortOrder, filter.search, filter.min_price, filter.max_price, filter.min_year, filter.max_year]);
+  }, [canManageCars, filter.page, filter.pageSize, filter.status, filter.sortBy, filter.sortOrder, filter.search, filter.min_price, filter.max_price, filter.min_year, filter.max_year]);
 
   const handleToggleAuction = async () => {
     try {
@@ -275,13 +278,13 @@ function AdminCars() {
 
   if (!isAuthenticated) return null;
 
-  if (!isSeller) {
+  if (!canManageCars) {
     return (
       <div className="admin-cars-page">
         <div className="container">
           <div className="admin-panel">
             <h1>Access Denied</h1>
-            <p className="admin-muted">Only seller accounts can manage cars.</p>
+            <p className="admin-muted">Only seller/agent accounts can manage cars.</p>
           </div>
         </div>
       </div>
@@ -294,6 +297,7 @@ function AdminCars() {
         <h1 className="admin-heading">Manage Cars</h1>
         <p className="admin-muted">Create, update, delete and browse your vehicle listings.</p>
 
+        {canManageSettings && (
         <div className="admin-panel">
           <h2>Dashboard</h2>
           <div className="admin-library-stats">
@@ -303,7 +307,9 @@ function AdminCars() {
             <div><span>Sold</span><strong>{stats.sold}</strong></div>
           </div>
         </div>
+        )}
 
+        {canManageSettings && (
         <div className="admin-panel admin-settings-panel">
           <h2>Auction Control</h2>
           <p className="admin-muted">
@@ -316,6 +322,7 @@ function AdminCars() {
             {settingsMessage && <span className="admin-settings-msg">{settingsMessage}</span>}
           </div>
         </div>
+        )}
 
         <form className="admin-panel" onSubmit={handleSubmit}>
           <h2>{pageTitle}</h2>
@@ -470,7 +477,9 @@ function AdminCars() {
                   </div>
                   <div className="admin-row-actions">
                     <button type="button" onClick={() => handleEdit(car)}>Edit</button>
-                    <button type="button" className="danger" onClick={() => handleDelete(car.id)}>Delete</button>
+                    {user?.role === 'seller' && (
+                      <button type="button" className="danger" onClick={() => handleDelete(car.id)}>Delete</button>
+                    )}
                   </div>
                 </div>
               ))}

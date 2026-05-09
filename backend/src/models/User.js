@@ -26,7 +26,7 @@ const User = sequelize.define('User', {
     allowNull: true
   },
   role: {
-    type: DataTypes.ENUM('buyer', 'seller'),
+    type: DataTypes.ENUM('buyer', 'seller', 'agent'),
     defaultValue: 'buyer'
   },
   avatar_url: {

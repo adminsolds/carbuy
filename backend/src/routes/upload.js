@@ -2,6 +2,8 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const auth = require('../middleware/auth');
+const authorize = require('../middleware/authorize');
 
 const router = express.Router();
 
@@ -25,24 +27,29 @@ const storage = multer.diskStorage({
   }
 });
 
-// Filter: only allow images
+// Filter: allow common image mime types (including HEIC/HEIF from phones)
 const fileFilter = (req, file, cb) => {
-  const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg'];
-  if (allowed.includes(file.mimetype)) {
+  const mime = String(file.mimetype || '').toLowerCase();
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  const allowedExt = new Set([
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.heic', '.heif', '.jfif'
+  ]);
+
+  if (mime.startsWith('image/') || allowedExt.has(ext)) {
     cb(null, true);
   } else {
-    cb(new Error('Only image files (JPEG, PNG, GIF, WebP) are allowed.'), false);
+    cb(new Error('Only image files are allowed.'), false);
   }
 };
 
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB max
+  limits: { fileSize: 20 * 1024 * 1024 } // 20MB max
 });
 
 // POST /api/upload — Upload one or more images
-router.post('/', upload.array('images', 10), (req, res) => {
+router.post('/', auth, authorize('seller', 'agent'), upload.array('images', 10), (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No image files provided.' });
@@ -57,7 +64,7 @@ router.post('/', upload.array('images', 10), (req, res) => {
   // Multer error handler
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
+      return res.status(400).json({ error: 'File too large. Maximum size is 20MB.' });
     }
     return res.status(400).json({ error: err.message });
   }

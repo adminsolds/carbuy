@@ -75,6 +75,7 @@ describe('Agent API', () => {
         .send({ code: 'AGT002', name: 'Jane Agent', email: 'jane@test.com', phone: '+60 13-456 7890' });
       expect(res.status).toBe(201);
       expect(res.body.agent).toHaveProperty('code', 'AGT002');
+      expect(res.body.agent).toHaveProperty('avatar_url', '/uploads/default-agent-avatar.svg');
     });
 
     it('should reject duplicate agent code', async () => {
@@ -91,9 +92,10 @@ describe('Agent API', () => {
       const res = await request(app)
         .put(`/api/agent/${testAgent.id}`)
         .set('Authorization', `Bearer ${sellerToken}`)
-        .send({ name: 'Updated Agent Name', phone: '+60 14-999 8888' });
+        .send({ name: 'Updated Agent Name', phone: '+60 14-999 8888', avatar_url: '/uploads/custom-agent.png' });
       expect(res.status).toBe(200);
       expect(res.body.agent).toHaveProperty('name', 'Updated Agent Name');
+      expect(res.body.agent).toHaveProperty('avatar_url', '/uploads/custom-agent.png');
     });
   });
 

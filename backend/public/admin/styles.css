@@ -851,6 +851,7 @@ tbody tr:hover td { background: #f8fafd; }
 .pill-sold      { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
 .pill-buyer     { background: var(--info-bg); color: var(--info); border: 1px solid var(--info-border); }
 .pill-seller    { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
+.pill-agent     { background: #ecfeff; color: #0e7490; border: 1px solid #bae6fd; }
 .pill-active    { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
 .pill-inactive  { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
 .pill-pending   { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
@@ -1217,6 +1218,44 @@ tbody tr:hover td { background: #f8fafd; }
   font-size: 12px;
   color: var(--text-muted);
   margin: 0;
+}
+
+.agent-avatar-field {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.agent-avatar-preview {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 999px;
+  border: 1px solid #dbe2ea;
+  background: #f8fafc;
+}
+
+.agent-avatar-actions {
+  flex: 1;
+}
+
+.agent-avatar-actions input {
+  width: 100%;
+}
+
+.agent-avatar-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.agent-avatar-cell {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 999px;
+  border: 1px solid #dbe2ea;
 }
 
 /* ─── Mini table (dashboard) ──────────────────────────────────────────────── */

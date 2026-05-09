@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const { DataTypes } = require('sequelize');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -18,6 +19,75 @@ const { ensureSettingsSeeded } = require('./services/settingsService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const DEFAULT_AGENT_AVATAR = '/uploads/default-agent-avatar.svg';
+
+async function ensureAgentAvatarColumn() {
+  const queryInterface = sequelize.getQueryInterface();
+  const table = await queryInterface.describeTable('agents');
+  if (!table.avatar_url) {
+    await queryInterface.addColumn('agents', 'avatar_url', {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+      defaultValue: DEFAULT_AGENT_AVATAR
+    });
+    console.log('Database migration: added agents.avatar_url');
+  }
+  await sequelize.query(
+    `UPDATE agents
+     SET avatar_url = :defaultAvatar
+     WHERE avatar_url IS NULL OR TRIM(avatar_url) = ''`,
+    { replacements: { defaultAvatar: DEFAULT_AGENT_AVATAR } }
+  );
+}
+
+async function ensureAgentAccessColumns() {
+  const queryInterface = sequelize.getQueryInterface();
+  const table = await queryInterface.describeTable('agents');
+
+  if (!table.access_enabled) {
+    await queryInterface.addColumn('agents', 'access_enabled', {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    });
+    console.log('Database migration: added agents.access_enabled');
+  }
+
+  if (!table.access_user_id) {
+    await queryInterface.addColumn('agents', 'access_user_id', {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    });
+    console.log('Database migration: added agents.access_user_id');
+  }
+
+  if (!table.can_add_car) {
+    await queryInterface.addColumn('agents', 'can_add_car', {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true
+    });
+    console.log('Database migration: added agents.can_add_car');
+  }
+
+  if (!table.can_edit_car) {
+    await queryInterface.addColumn('agents', 'can_edit_car', {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true
+    });
+    console.log('Database migration: added agents.can_edit_car');
+  }
+
+  if (!table.can_update_order_status) {
+    await queryInterface.addColumn('agents', 'can_update_order_status', {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true
+    });
+    console.log('Database migration: added agents.can_update_order_status');
+  }
+}
 
 // Middleware
 app.use(cors());
@@ -41,6 +111,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Prevent noisy favicon 404 in browser console
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end();
+});
+
 // Unified error handler (including invalid JSON payload)
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
@@ -61,6 +136,8 @@ const startServer = async () => {
 
     await sequelize.sync();
     console.log('Models synchronized.');
+    await ensureAgentAvatarColumn();
+    await ensureAgentAccessColumns();
     await ensureSettingsSeeded();
     console.log('App settings initialized.');
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../lib/api';
 import './Agent.css';
 
+const defaultAgentAvatar = '/uploads/default-agent-avatar.svg';
 const fallbackAgents = [
   {
     id: 1,
@@ -9,7 +10,7 @@ const fallbackAgents = [
     code: 'AGT-1001',
     email: 'john@autoauction.com',
     description: 'Senior sales consultant for premium and imported vehicles.',
-    icon: 'https://i.pravatar.cc/500?img=12',
+    icon: defaultAgentAvatar,
   },
   {
     id: 2,
@@ -17,7 +18,7 @@ const fallbackAgents = [
     code: 'AGT-1002',
     email: 'sarah@autoauction.com',
     description: 'Auction specialist handling live bidding and buyer support.',
-    icon: 'https://i.pravatar.cc/500?img=32',
+    icon: defaultAgentAvatar,
   },
   {
     id: 3,
@@ -25,7 +26,7 @@ const fallbackAgents = [
     code: 'AGT-1003',
     email: 'michael@autoauction.com',
     description: 'Customer relations expert focused on delivery and documentation.',
-    icon: 'https://i.pravatar.cc/500?img=52',
+    icon: defaultAgentAvatar,
   },
 ];
 
@@ -47,8 +48,8 @@ function Agent() {
             agent: item.agent || item.name || '-',
             code: item.code || `AGT-${String(item.id ?? index + 1).padStart(4, '0')}`,
             email: item.email || '-',
-            description: item.description || item.role || '-',
-            icon: item.icon || item.photo || 'https://via.placeholder.com/500x500?text=Agent',
+            description: item.description || item.notes || item.role || '-',
+            icon: item.avatar_url || item.icon || item.photo || defaultAgentAvatar,
           }));
           setAgents(normalized);
         }

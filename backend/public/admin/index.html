@@ -78,6 +78,7 @@
             <div class="sidebar-user-role" id="sidebarUserRole">-</div>
           </div>
         </div>
+        <button id="accountSettingsBtn" class="btn-secondary btn-sm" style="width:100%;margin-bottom:8px;">Account Settings</button>
         <button id="logoutBtn" class="btn-logout">Logout</button>
       </div>
     </aside>
@@ -115,16 +116,16 @@
             <div class="card">
               <div class="card-header"><h3>Quick Actions</h3></div>
               <div class="card-body quick-actions">
-                <button class="qa-btn" onclick="showSection('inventory');resetCarForm();">
+                <button class="qa-btn" id="qaAddVehicleBtn" onclick="showSection('inventory');resetCarForm();">
                   <span>🚗</span> Add Vehicle
                 </button>
-                <button class="qa-btn" onclick="showSection('agents');resetAgentForm();">
+                <button class="qa-btn" id="qaAddAgentBtn" onclick="showSection('agents');resetAgentForm();">
                   <span>👤</span> Add Agent
                 </button>
-                <button class="qa-btn" onclick="showSection('auction');">
+                <button class="qa-btn" id="qaAuctionBtn" onclick="showSection('auction');">
                   <span>🔨</span> Auction
                 </button>
-                <button class="qa-btn" onclick="showSection('orders');">
+                <button class="qa-btn" id="qaOrdersBtn" onclick="showSection('orders');">
                   <span>📋</span> Orders
                 </button>
               </div>
@@ -214,7 +215,7 @@
                     <div class="upload-dropzone" id="uploadDropzone">
                       <div class="upload-icon">📷</div>
                       <p>Drag & drop images here, or click to select</p>
-                      <span>Supports: JPG, PNG, GIF, WebP (max 10MB each, up to 10 images)</span>
+                      <span>Supports: JPG, PNG, GIF, WebP, HEIC, HEIF (max 20MB each, up to 10 images)</span>
                       <input type="file" id="carImageInput" accept="image/*" multiple style="display:none" />
                     </div>
                     <div class="upload-progress hidden" id="uploadProgress">
@@ -306,7 +307,7 @@
                     <div class="upload-dropzone" id="aucUploadDropzone">
                       <div class="upload-icon">📷</div>
                       <p>Drag & drop images here, or click to select</p>
-                      <span>Supports: JPG, PNG, GIF, WebP (max 10MB each, up to 10 images)</span>
+                      <span>Supports: JPG, PNG, GIF, WebP, HEIC, HEIF (max 20MB each, up to 10 images)</span>
                       <input type="file" id="aucImageInput" accept="image/*" multiple style="display:none" />
                     </div>
                     <div class="upload-progress hidden" id="aucUploadProgress">
@@ -377,8 +378,43 @@
                     <select id="agentActive"><option value="true">Active</option><option value="false">Inactive</option></select>
                   </div>
                 </div>
+                <div class="form-group">
+                  <label>Avatar</label>
+                  <div class="agent-avatar-field">
+                    <img id="agentAvatarPreviewImg" class="agent-avatar-preview" src="/uploads/default-agent-avatar.svg" alt="Agent Avatar" />
+                    <div class="agent-avatar-actions">
+                      <input id="agentAvatarUrl" placeholder="/uploads/your-avatar.jpg or https://..." />
+                      <div class="agent-avatar-buttons">
+                        <button type="button" class="btn-secondary btn-sm" id="agentAvatarUploadBtn">Upload Avatar</button>
+                        <button type="button" class="btn-secondary btn-sm" id="agentAvatarDefaultBtn">Use Default</button>
+                        <input type="file" id="agentAvatarFile" accept="image/*" style="display:none" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <div class="form-group"><label>Address</label><textarea id="agentAddress" rows="2" placeholder="Full address..."></textarea></div>
                 <div class="form-group"><label>Notes</label><textarea id="agentNotes" rows="2" placeholder="Internal notes..."></textarea></div>
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label>Backend Access</label>
+                    <select id="agentAccessEnabled">
+                      <option value="false">No Access</option>
+                      <option value="true">Grant Access</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Initial/Reset Password (optional)</label>
+                    <input id="agentAccessPassword" type="password" placeholder="Required for first-time access if no account exists" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Agent Permissions</label>
+                  <div class="agent-avatar-buttons">
+                    <label><input type="checkbox" id="agentPermAddCar" checked /> Add Vehicle</label>
+                    <label><input type="checkbox" id="agentPermEditCar" checked /> Edit Vehicle</label>
+                    <label><input type="checkbox" id="agentPermUpdateOrder" checked /> Update Order Status</label>
+                  </div>
+                </div>
                 <div class="form-actions">
                   <button type="submit" class="btn-primary" id="agentSaveBtn">Create Agent</button>
                   <button type="button" class="btn-secondary" onclick="hideAgentForm()">Cancel</button>
@@ -415,7 +451,7 @@
               <table>
                 <thead>
                   <tr>
-                    <th>ID</th><th>Code</th><th>Name</th><th>Email</th><th>Phone</th><th>Company</th><th>Status</th><th>Actions</th>
+                    <th>ID</th><th>Avatar</th><th>Code</th><th>Name</th><th>Email</th><th>Phone</th><th>Company</th><th>Status</th><th>Access</th><th>Access Action</th><th>Actions</th>
                   </tr>
                 </thead>
                 <tbody id="agentTable"></tbody>
@@ -433,7 +469,7 @@
         <div id="section-orders" class="content-section hidden">
           <div class="section-toolbar">
             <h2>Order Management</h2>
-            <button class="btn-primary" onclick="resetOrderForm();showOrderForm()">+ Create Order</button>
+            <button class="btn-primary" id="createOrderBtn" onclick="resetOrderForm();showOrderForm()">+ Create Order</button>
           </div>
 
           <!-- Order stats -->
@@ -590,7 +626,6 @@
             <div class="card-body">
               <div class="filter-row">
                 <input id="userSearch" type="text" placeholder="Search name, email, phone..." />
-                <select id="userRole"><option value="all">All Roles</option><option value="buyer">Buyer</option><option value="seller">Seller</option></select>
                 <select id="userActive"><option value="all">All Status</option><option value="true">Active</option><option value="false">Inactive</option></select>
                 <select id="userSortBy"><option value="createdAt">Newest</option><option value="name">Name</option></select>
                 <select id="userSortOrder"><option value="DESC">Desc</option><option value="ASC">Asc</option></select>
@@ -601,7 +636,7 @@
               <table>
                 <thead>
                   <tr>
-                    <th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Active</th><th>Joined</th><th>Actions</th>
+                    <th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Active</th><th>Joined</th><th>Actions</th>
                   </tr>
                 </thead>
                 <tbody id="userTable"></tbody>
@@ -695,6 +730,54 @@
           </div>
 
           <div class="card">
+            <div class="card-header"><h3>Update Account</h3></div>
+            <div class="card-body">
+              <form id="accountForm">
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="accountName" required />
+                  </div>
+                  <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="accountEmail" required />
+                  </div>
+                  <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" id="accountPhone" />
+                  </div>
+                </div>
+                <div class="form-actions" style="margin-top:12px">
+                  <button type="submit" class="btn-primary" id="accountSaveBtn">Save Account</button>
+                  <span id="accountMsg" class="form-msg" style="margin-left:12px"></span>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h3>Change Password</h3></div>
+            <div class="card-body">
+              <form id="passwordForm">
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label>Current Password</label>
+                    <input type="password" id="currentPassword" required />
+                  </div>
+                  <div class="form-group">
+                    <label>New Password</label>
+                    <input type="password" id="newPassword" placeholder="At least 6 chars with uppercase/lowercase/number" required />
+                  </div>
+                </div>
+                <div class="form-actions" style="margin-top:12px">
+                  <button type="submit" class="btn-primary" id="passwordSaveBtn">Update Password</button>
+                  <span id="passwordMsg" class="form-msg" style="margin-left:12px"></span>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div class="card">
             <div class="card-header"><h3>System Info</h3></div>
             <div class="card-body">
               <div class="info-row"><span>Database:</span><strong>SQLite</strong></div>
@@ -709,6 +792,6 @@
 </div><!-- /app -->
 
 <div id="globalMsg" class="global-msg"></div>
-<script src="./main.js"></script>
+<script src="./main.js?v=20260509-access"></script>
 </body>
 </html>

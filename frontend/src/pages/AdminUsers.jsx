@@ -12,7 +12,7 @@ function AdminUsers() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [stats, setStats] = useState({ total: 0, buyers: 0, sellers: 0 });
+  const [stats, setStats] = useState({ total: 0, buyers: 0, sellers: 0, agents: 0 });
   const [filter, setFilter] = useState({
     search: '',
     role: 'all',
@@ -33,6 +33,7 @@ function AdminUsers() {
         total: response.stats?.users?.total || 0,
         buyers: response.stats?.users?.buyers || 0,
         sellers: response.stats?.users?.sellers || 0,
+        agents: response.stats?.users?.agents || 0,
       });
     } catch {
       // Non-critical
@@ -88,8 +89,7 @@ function AdminUsers() {
     setFilter((prev) => ({ ...prev, page: 1 }));
   };
 
-  const toggleRole = async (targetUser) => {
-    const nextRole = targetUser.role === 'seller' ? 'buyer' : 'seller';
+  const updateRole = async (targetUser, nextRole) => {
     try {
       setMessage('');
       setError('');
@@ -168,6 +168,7 @@ function AdminUsers() {
             <div><span>Total</span><strong>{stats.total}</strong></div>
             <div><span>Buyers</span><strong>{stats.buyers}</strong></div>
             <div><span>Sellers</span><strong>{stats.sellers}</strong></div>
+            <div><span>Agents</span><strong>{stats.agents}</strong></div>
             <div><span>Active</span><strong>{users.filter(u => u.is_active).length}</strong></div>
           </div>
         </div>
@@ -187,8 +188,9 @@ function AdminUsers() {
             />
             <select name="role" value={filter.role} onChange={onFilterChange}>
               <option value="all">All Roles</option>
-              <option value="buyer">Buyer</option>
-              <option value="seller">Seller</option>
+              <option value="buyer">User</option>
+              <option value="seller">Admin</option>
+              <option value="agent">Agent</option>
             </select>
             <select name="is_active" value={filter.is_active} onChange={onFilterChange}>
               <option value="all">All Status</option>
@@ -225,7 +227,7 @@ function AdminUsers() {
                     <strong>#{item.id} {item.name || '-'}</strong>
                     <p>
                       {item.email || '-'} · {item.phone || '-'}{' '}
-                      <span className={`role-badge role-${item.role}`}>{item.role}</span>{' '}
+                      <span className={`role-badge role-${item.role}`}>{item.role === 'seller' ? 'Admin' : item.role === 'buyer' ? 'User' : 'Agent'}</span>{' '}
                       <span className={`status-badge status-${item.is_active ? 'active' : 'inactive'}`}>
                         {item.is_active ? 'Active' : 'Inactive'}
                       </span>
@@ -240,8 +242,14 @@ function AdminUsers() {
                     </p>
                   </div>
                   <div className="admin-row-actions">
-                    <button type="button" onClick={() => toggleRole(item)}>
-                      {item.role === 'seller' ? 'Set Buyer' : 'Set Seller'}
+                    <button type="button" onClick={() => updateRole(item, 'buyer')}>
+                      Set Buyer
+                    </button>
+                    <button type="button" onClick={() => updateRole(item, 'agent')}>
+                      Set Agent
+                    </button>
+                    <button type="button" onClick={() => updateRole(item, 'seller')}>
+                      Set Admin
                     </button>
                     <button
                       type="button"

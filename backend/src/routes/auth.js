@@ -279,6 +279,59 @@ router.get('/me', require('../middleware/auth'), async (req, res) => {
   }
 });
 
+// ─── PUT /api/auth/account ─────────────────────────────────────────────────────
+// Update account basics (name/email/phone) and issue refreshed JWT.
+router.put('/account', require('../middleware/auth'), async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const { name, email, phone } = req.body;
+    const updateFields = {};
+
+    if (name !== undefined) {
+      const nextName = String(name || '').trim();
+      if (!nextName) return res.status(400).json({ error: 'Name cannot be empty.' });
+      updateFields.name = nextName;
+    }
+
+    if (email !== undefined) {
+      const nextEmail = String(email || '').trim().toLowerCase();
+      if (!nextEmail || !isValidEmail(nextEmail)) {
+        return res.status(400).json({ error: 'Invalid email format.' });
+      }
+      const existing = await User.findOne({ where: { email: nextEmail } });
+      if (existing && existing.id !== user.id) {
+        return res.status(400).json({ error: 'Email already registered.' });
+      }
+      updateFields.email = nextEmail;
+    }
+
+    if (phone !== undefined) {
+      updateFields.phone = phone?.trim() || null;
+    }
+
+    await user.update(updateFields);
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, name: user.name, role: user.role },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
+    res.json({
+      message: 'Account updated successfully.',
+      token,
+      user: serializeUser(user)
+    });
+  } catch (error) {
+    console.error('Update account error:', error);
+    res.status(500).json({ error: 'Failed to update account.' });
+  }
+});
+
 // ─── PUT /api/auth/profile ─────────────────────────────────────────────────────
 router.put('/profile', require('../middleware/auth'), async (req, res) => {
   try {

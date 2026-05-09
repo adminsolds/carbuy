@@ -4,6 +4,7 @@ const { Car, Bid, User } = require('../models');
 const { Op } = require('sequelize');
 const auth = require('../middleware/auth');
 const authorize = require('../middleware/authorize');
+const agentPermission = require('../middleware/agentPermission');
 const { getAuctionEnabled } = require('../services/settingsService');
 
 // Helpers
@@ -207,8 +208,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/cars — Create car (seller only)
-router.post('/', auth, authorize('seller'), async (req, res) => {
+// POST /api/cars — Create car (seller/agent)
+router.post('/', auth, authorize('seller', 'agent'), agentPermission('add_car'), async (req, res) => {
   try {
     const {
       brand, model, year, mileage, color, price, description, images,
@@ -256,8 +257,8 @@ router.post('/', auth, authorize('seller'), async (req, res) => {
   }
 });
 
-// PUT /api/cars/:id — Update car (seller only)
-router.put('/:id', auth, authorize('seller'), async (req, res) => {
+// PUT /api/cars/:id — Update car (seller/agent)
+router.put('/:id', auth, authorize('seller', 'agent'), agentPermission('edit_car'), async (req, res) => {
   try {
     const { id } = req.params;
     const car = await Car.findByPk(id);
