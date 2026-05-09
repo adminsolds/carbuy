@@ -297,6 +297,71 @@ router.get('/me', auth, async (req, res) => {
 });
 
 // ─── Admin: List orders (paginated) ────────────────────────────────────────────
+// Public: lookup orders by account (email/phone/name)
+router.get('/lookup', async (req, res) => {
+  try {
+    const account = normalizeText(req.query.account);
+    const { status } = req.query;
+
+    if (!account) {
+      return res.status(400).json({ error: 'Account is required.' });
+    }
+
+    const accountLower = account.toLowerCase();
+    const user = await User.findOne({
+      where: {
+        [Op.or]: [
+          where(fn('lower', col('email')), accountLower),
+          { phone: account },
+          where(fn('lower', col('name')), accountLower)
+        ]
+      },
+      attributes: ['id', 'email']
+    });
+
+    if (!user) {
+      return res.json({ orders: [] });
+    }
+
+    const currentEmail = normalizeEmail(user.email);
+
+    if (currentEmail) {
+      await Order.update(
+        { user_id: user.id },
+        {
+          where: {
+            user_id: null,
+            [Op.and]: [where(fn('lower', col('buyer_email')), currentEmail)]
+          }
+        }
+      );
+    }
+
+    const orderWhere = {
+      [Op.or]: [
+        { user_id: user.id },
+        ...(currentEmail ? [where(fn('lower', col('buyer_email')), currentEmail)] : [])
+      ]
+    };
+    if (status && status !== 'all') orderWhere.status = status;
+
+    const orders = await Order.findAll({
+      where: orderWhere,
+      include: [
+        { model: User, as: 'user', attributes: ['id', 'name', 'email'] },
+        { model: Car, as: 'car', attributes: ['id', 'brand', 'model', 'year', 'images'] },
+        { model: Agent, as: 'agent', attributes: ['id', 'code', 'name'] }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json({ orders: orders.map(serializeOrder) });
+  } catch (error) {
+    console.error('Lookup orders error:', error);
+    res.status(500).json({ error: 'Failed to fetch orders.' });
+  }
+});
+
 router.get('/admin/list', auth, authorize('seller'), async (req, res) => {
   try {
     const {

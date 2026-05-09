@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import './Tracking.css';
 
 function Tracking() {
-  const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [bids, setBids] = useState([]);
   const [orders, setOrders] = useState([]);
   const [activeTab, setActiveTab] = useState('orders');
+  const [lookupAccount, setLookupAccount] = useState('');
+  const [hasLookedUp, setHasLookedUp] = useState(false);
+  const [lookupLoading, setLookupLoading] = useState(false);
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatus, setOrderStatus] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -17,7 +19,10 @@ function Tracking() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/login');
+      setBids([]);
+      setOrders([]);
+      setActiveTab('orders');
+      setLoading(false);
       return;
     }
 
@@ -38,7 +43,29 @@ function Tracking() {
     };
 
     fetchData();
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated]);
+
+  const lookupOrdersByAccount = async () => {
+    const account = lookupAccount.trim();
+    if (!account) {
+      setError('Please enter your account (email / phone / name).');
+      return;
+    }
+
+    try {
+      setError('');
+      setLookupLoading(true);
+      setHasLookedUp(true);
+      const response = await api.get('/orders/lookup', { params: { account } });
+      setOrders(response.data.orders || []);
+      setActiveTab('orders');
+    } catch (requestError) {
+      setOrders([]);
+      setError(getApiErrorMessage(requestError, 'Failed to lookup orders.'));
+    } finally {
+      setLookupLoading(false);
+    }
+  };
 
   const getBidBadge = (status) => {
     const badges = {
@@ -88,7 +115,22 @@ function Tracking() {
     <div className="tracking">
       <div className="container">
         <h1>MY DASHBOARD</h1>
-        <p className="subtitle">Track your orders and auction bids</p>
+        <p className="subtitle">{isAuthenticated ? 'Track your orders and auction bids' : 'Track your order status by account'}</p>
+
+        {!isAuthenticated && (
+          <div className="order-lookup-box">
+            <input
+              type="text"
+              value={lookupAccount}
+              onChange={(e) => setLookupAccount(e.target.value)}
+              placeholder="Enter account (email / phone / name)"
+              onKeyDown={(e) => { if (e.key === 'Enter') lookupOrdersByAccount(); }}
+            />
+            <button type="button" onClick={lookupOrdersByAccount} disabled={lookupLoading}>
+              {lookupLoading ? 'Searching...' : 'Search Orders'}
+            </button>
+          </div>
+        )}
 
         <div className="tracking-tabs">
           <button
@@ -97,12 +139,14 @@ function Tracking() {
           >
             My Orders {orders.length > 0 && <span className="tab-count">{orders.length}</span>}
           </button>
-          <button
-            className={`tab-btn ${activeTab === 'bids' ? 'active' : ''}`}
-            onClick={() => setActiveTab('bids')}
-          >
-            My Bids {bids.length > 0 && <span className="tab-count">{bids.length}</span>}
-          </button>
+          {isAuthenticated && (
+            <button
+              className={`tab-btn ${activeTab === 'bids' ? 'active' : ''}`}
+              onClick={() => setActiveTab('bids')}
+            >
+              My Bids {bids.length > 0 && <span className="tab-count">{bids.length}</span>}
+            </button>
+          )}
         </div>
 
         <div className="tracking-content">
@@ -135,7 +179,11 @@ function Tracking() {
 
               {filteredOrders.length === 0 ? (
                 <div className="empty-state">
-                  <p>{orders.length === 0 ? "You haven't placed any orders yet." : 'No matching orders found.'}</p>
+                  <p>
+                    {orders.length === 0
+                      ? (isAuthenticated ? "You haven't placed any orders yet." : (hasLookedUp ? 'No orders found for this account.' : 'Enter your account above to search orders.'))
+                      : 'No matching orders found.'}
+                  </p>
                   <Link to="/cars" className="browse-btn">Browse Cars</Link>
                 </div>
               ) : (

@@ -19,6 +19,36 @@
   margin: 0 auto;
 }
 
+.order-lookup-box {
+  max-width: 900px;
+  margin: 0 auto 1rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.6rem;
+}
+
+.order-lookup-box input {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.95rem;
+}
+
+.order-lookup-box button {
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  background: #1E3A5F;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.order-lookup-box button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .empty-state {
   background: white;
   padding: 3rem;
@@ -404,6 +434,10 @@
 }
 
 @media (max-width: 768px) {
+  .order-lookup-box {
+    grid-template-columns: 1fr;
+  }
+
   .bid-card {
     grid-template-columns: 1fr;
     gap: 1rem;

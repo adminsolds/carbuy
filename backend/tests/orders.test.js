@@ -171,6 +171,33 @@ describe('Orders API', () => {
     });
   });
 
+  describe('GET /api/orders/lookup', () => {
+    it('should return orders by account without login', async () => {
+      const testCar = await createAvailableCar();
+      const createRes = await request(app)
+        .post('/api/orders/admin')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          car_id: testCar.id,
+          order_type: 'purchase',
+          amount: 88000,
+          buyer_name: 'Lookup Buyer',
+          buyer_email: 'buyer@test.com'
+        });
+      expect(createRes.status).toBe(201);
+
+      const lookupRes = await request(app)
+        .get('/api/orders/lookup')
+        .query({ account: 'buyer@test.com' });
+
+      expect(lookupRes.status).toBe(200);
+      const matched = (lookupRes.body.orders || []).find((o) => o.id === createRes.body.order.id);
+      expect(matched).toBeTruthy();
+      expect(matched.user).toBeTruthy();
+      expect(matched.user.email).toBe('buyer@test.com');
+    });
+  });
+
   describe('GET /api/orders/admin/stats', () => {
     it('should return order statistics', async () => {
       const res = await request(app)

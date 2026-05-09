@@ -39,7 +39,7 @@ function App() {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/loan-calculator" element={<LoanCalculator />} />
-            <Route path="/tracking" element={<RequireAuth><Tracking /></RequireAuth>} />
+            <Route path="/tracking" element={<Tracking />} />
             <Route path="/agent" element={<Agent />} />
             <Route path="/admin/cars" element={<RequireAuth><AdminCars /></RequireAuth>} />
             <Route path="/admin/users" element={<RequireAuth><AdminUsers /></RequireAuth>} />
