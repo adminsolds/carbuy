@@ -89,6 +89,38 @@ async function ensureAgentAccessColumns() {
   }
 }
 
+function generatePickupCode(seed = null) {
+  const random = Math.random().toString(36).slice(2, 8).toUpperCase();
+  if (!seed) return `PK-${random}`;
+  const normalized = String(seed).replace(/[^A-Za-z0-9]/g, '').slice(-8).toUpperCase();
+  return `PK-${normalized || random}`;
+}
+
+async function ensureOrderPickupCodeColumn() {
+  const queryInterface = sequelize.getQueryInterface();
+  const table = await queryInterface.describeTable('orders');
+
+  if (!table.pickup_code) {
+    await queryInterface.addColumn('orders', 'pickup_code', {
+      type: DataTypes.STRING(20),
+      allowNull: true
+    });
+    console.log('Database migration: added orders.pickup_code');
+  }
+
+  const [ordersWithoutPickupCode] = await sequelize.query(
+    `SELECT id, order_no FROM orders WHERE pickup_code IS NULL OR TRIM(pickup_code) = ''`
+  );
+
+  for (const order of ordersWithoutPickupCode) {
+    const pickupCode = generatePickupCode(order.order_no || order.id);
+    await sequelize.query(
+      `UPDATE orders SET pickup_code = :pickupCode WHERE id = :id`,
+      { replacements: { pickupCode, id: order.id } }
+    );
+  }
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -138,6 +170,7 @@ const startServer = async () => {
     console.log('Models synchronized.');
     await ensureAgentAvatarColumn();
     await ensureAgentAccessColumns();
+    await ensureOrderPickupCodeColumn();
     await ensureSettingsSeeded();
     console.log('App settings initialized.');
 

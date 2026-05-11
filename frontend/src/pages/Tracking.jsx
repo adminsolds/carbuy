@@ -104,6 +104,7 @@ function Tracking() {
     if (!orderSearch.trim()) return true;
     const keyword = orderSearch.trim().toLowerCase();
     const text = [
+      order.pickup_code,
       order.order_no,
       order.car ? `${order.car.brand} ${order.car.model}` : '',
       order.status,
@@ -161,7 +162,7 @@ function Tracking() {
                   type="text"
                   value={orderSearch}
                   onChange={(e) => setOrderSearch(e.target.value)}
-                  placeholder="Search by order number or car model"
+                  placeholder="Search by pickup code / order number / car model"
                 />
                 <select value={orderStatus} onChange={(e) => setOrderStatus(e.target.value)}>
                   <option value="all">All Status</option>
@@ -195,7 +196,7 @@ function Tracking() {
                       <div key={order.id} className="order-card">
                         <div className="order-header">
                           <div>
-                            <span className="order-no">{order.order_no}</span>
+                            <span className="order-no">{order.pickup_code || order.order_no}</span>
                             <span className={`status-badge ${badge.class}`}>{badge.label}</span>
                             <span className={`order-type-badge ${order.order_type === 'auction_win' ? 'auction' : 'purchase'}`}>
                               {order.order_type === 'auction_win' ? 'Auction Win' : 'Purchase'}
@@ -241,6 +242,10 @@ function Tracking() {
                         )}
 
                         <div className="order-details">
+                          <div className="detail-item">
+                            <span className="detail-label">Pickup Code</span>
+                            <span className="detail-value">{order.pickup_code || '-'}</span>
+                          </div>
                           {order.user && (
                             <div className="detail-item">
                               <span className="detail-label">Account</span>
