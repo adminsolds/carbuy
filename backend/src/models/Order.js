@@ -12,11 +12,6 @@ const Order = sequelize.define('Order', {
     allowNull: false,
     unique: true
   },
-  pickup_code: {
-    type: DataTypes.STRING(20),
-    allowNull: true,
-    field: 'pickup_code'
-  },
   user_id: {
     type: DataTypes.INTEGER,
     allowNull: false,

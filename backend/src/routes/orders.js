@@ -29,11 +29,6 @@ const generateOrderNo = () => {
   return `ORD-${dateStr}-${random}`;
 };
 
-const generatePickupCode = () => {
-  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-  return `PK-${random}`;
-};
-
 const normalizeEmail = (value) => {
   if (typeof value !== 'string') return null;
   const email = value.trim().toLowerCase();
@@ -85,7 +80,6 @@ const ensureBuyerUser = async ({ buyerName, buyerEmail, buyerPhone, fallbackUser
 const serializeOrder = (order) => ({
   id: order.id,
   order_no: order.order_no,
-  pickup_code: order.pickup_code,
   order_type: order.order_type,
   amount: order.amount,
   deposit_paid: order.deposit_paid,
@@ -148,7 +142,6 @@ router.post('/', auth, async (req, res) => {
 
     const order = await Order.create({
       order_no: generateOrderNo(),
-      pickup_code: generatePickupCode(),
       user_id,
       car_id,
       agent_id: agent_id || null,
@@ -223,7 +216,6 @@ router.post('/admin', auth, authorize('seller'), async (req, res) => {
 
     const order = await Order.create({
       order_no: generateOrderNo(),
-      pickup_code: generatePickupCode(),
       user_id: linkedUser.id,
       car_id,
       agent_id: agent_id || null,
