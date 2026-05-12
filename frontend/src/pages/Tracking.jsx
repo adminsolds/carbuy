@@ -105,6 +105,8 @@ function Tracking() {
     const keyword = orderSearch.trim().toLowerCase();
     const text = [
       order.order_no,
+      order.custom_vehicle,
+      order.custom_order_type,
       order.car ? `${order.car.brand} ${order.car.model}` : '',
       order.status,
     ].join(' ').toLowerCase();
@@ -197,8 +199,8 @@ function Tracking() {
                           <div>
                             <span className="order-no">{order.order_no}</span>
                             <span className={`status-badge ${badge.class}`}>{badge.label}</span>
-                            <span className={`order-type-badge ${order.order_type === 'auction_win' ? 'auction' : 'purchase'}`}>
-                              {order.order_type === 'auction_win' ? 'Auction Win' : 'Purchase'}
+                            <span className={`order-type-badge ${order.order_type === 'auction_win' ? 'auction' : (order.order_type === 'custom' ? 'custom' : 'purchase')}`}>
+                              {order.order_type === 'auction_win' ? 'Auction Win' : (order.order_type === 'custom' ? (order.custom_order_type || 'Custom') : 'Purchase')}
                             </span>
                           </div>
                           <span className="order-date">
@@ -206,10 +208,27 @@ function Tracking() {
                           </span>
                         </div>
 
-                        {order.car && (
+                        {(order.car || order.custom_vehicle) && (
                           <div className="order-car-info">
-                            <h3>{order.car.brand} {order.car.model} ({order.car.year})</h3>
+                            <h3>{order.custom_vehicle || `${order.car.brand} ${order.car.model} (${order.car.year})`}</h3>
                             <span className="order-amount">RM {Number(order.amount || 0).toLocaleString()}</span>
+                          </div>
+                        )}
+
+                        {Array.isArray(order.images) && order.images.length > 0 && (
+                          <div className="order-images">
+                            {order.images.slice(0, 5).map((imageUrl, index) => (
+                              <a
+                                key={`${order.id}-img-${index}`}
+                                href={imageUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="order-image-thumb"
+                                title={`Order Image ${index + 1}`}
+                              >
+                                <img src={imageUrl} alt={`Order ${order.order_no} image ${index + 1}`} />
+                              </a>
+                            ))}
                           </div>
                         )}
 

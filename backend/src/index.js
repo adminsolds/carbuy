@@ -89,6 +89,50 @@ async function ensureAgentAccessColumns() {
   }
 }
 
+async function ensureOrderEnhancementColumns() {
+  const queryInterface = sequelize.getQueryInterface();
+  const table = await queryInterface.describeTable('orders');
+
+  if (!table.custom_order_type) {
+    await queryInterface.addColumn('orders', 'custom_order_type', {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    });
+    console.log('Database migration: added orders.custom_order_type');
+  }
+
+  if (!table.custom_vehicle) {
+    await queryInterface.addColumn('orders', 'custom_vehicle', {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    });
+    console.log('Database migration: added orders.custom_vehicle');
+  }
+
+  if (!table.images) {
+    await queryInterface.addColumn('orders', 'images', {
+      type: DataTypes.JSON,
+      allowNull: false,
+      defaultValue: []
+    });
+    console.log('Database migration: added orders.images');
+  }
+
+  try {
+    if (table.car_id && table.car_id.allowNull === false) {
+      await queryInterface.changeColumn('orders', 'car_id', {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        field: 'car_id',
+        references: { model: 'cars', key: 'id' }
+      });
+      console.log('Database migration: updated orders.car_id to nullable');
+    }
+  } catch (error) {
+    console.warn('Database migration warning: failed to update orders.car_id nullable', error?.message || error);
+  }
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -138,6 +182,7 @@ const startServer = async () => {
     console.log('Models synchronized.');
     await ensureAgentAvatarColumn();
     await ensureAgentAccessColumns();
+    await ensureOrderEnhancementColumns();
     await ensureSettingsSeeded();
     console.log('App settings initialized.');
 

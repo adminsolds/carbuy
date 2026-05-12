@@ -489,14 +489,18 @@
                     <label>Vehicle *</label>
                     <select id="orderCarId" required>
                       <option value="">-- Select Vehicle --</option>
+                      <option value="custom">Custom Vehicle (Manual Input)</option>
                     </select>
+                    <input id="orderCustomVehicle" type="text" class="hidden" placeholder="Enter custom vehicle/product name" style="margin-top:8px" />
                   </div>
                   <div class="form-group">
                     <label>Order Type *</label>
                     <select id="orderTypeSelect">
                       <option value="purchase">Purchase</option>
                       <option value="auction_win">Auction Win</option>
+                      <option value="custom">Custom</option>
                     </select>
+                    <input id="orderCustomType" type="text" class="hidden" placeholder="Enter custom order type" style="margin-top:8px" />
                   </div>
                   <div class="form-group">
                     <label>Amount (RM) *</label>
@@ -545,6 +549,24 @@
                   <label>Notes</label>
                   <textarea id="orderNotes" rows="2" placeholder="Internal notes..."></textarea>
                 </div>
+                <div class="form-group">
+                  <label>Order Images (Max 5)</label>
+                  <div class="image-upload-area">
+                    <div id="orderUploadDropzone" class="upload-dropzone">
+                      <input type="file" id="orderImageInput" accept="image/*" multiple hidden />
+                      <div class="upload-icon">📷</div>
+                      <p>Click or drag images here</p>
+                      <span>Supports JPG/PNG/WEBP, up to 5 images</span>
+                    </div>
+                    <div id="orderUploadProgress" class="upload-progress hidden">
+                      <div class="progress-bar">
+                        <div class="progress-fill" id="orderProgressFill"></div>
+                      </div>
+                      <span id="orderUploadStatus">Uploading...</span>
+                    </div>
+                    <div class="uploaded-images" id="orderUploadedImages"></div>
+                  </div>
+                </div>
                 <div class="form-actions">
                   <button type="submit" class="btn-primary" id="orderSaveBtn">Create Order</button>
                   <button type="button" class="btn-secondary" onclick="hideOrderForm()">Cancel</button>
@@ -584,6 +606,7 @@
                   <option value="all">All Types</option>
                   <option value="purchase">Purchase</option>
                   <option value="auction_win">Auction Win</option>
+                  <option value="custom">Custom</option>
                 </select>
                 <select id="orderSortBy">
                   <option value="createdAt">Newest</option>

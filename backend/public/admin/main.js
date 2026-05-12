@@ -24,6 +24,7 @@ const S = {
   // Uploaded images (local URLs from server)
   carUploadedImages: [],
   aucUploadedImages: [],
+  orderUploadedImages: [],
 };
 const DEFAULT_AGENT_AVATAR = '/uploads/default-agent-avatar.svg';
 let hasHandledUnauthorized = false;
@@ -132,6 +133,13 @@ function renderUploadedImages(containerId, images, stateKey, removeFn) {
 const uploadUiIdMap = {
   uploadDropzone: { progress: 'uploadProgress', fill: 'progressFill', status: 'uploadStatus' },
   aucUploadDropzone: { progress: 'aucUploadProgress', fill: 'aucProgressFill', status: 'aucUploadStatus' },
+  orderUploadDropzone: { progress: 'orderUploadProgress', fill: 'orderProgressFill', status: 'orderUploadStatus' },
+};
+
+const uploadLimitMap = {
+  carUploadedImages: 10,
+  aucUploadedImages: 10,
+  orderUploadedImages: 5
 };
 
 function getUploadUiIds(dropzoneId) {
@@ -185,13 +193,28 @@ async function handleImageFiles(files, stateKey, containerId, dropzoneId) {
   if (status) status.textContent = 'Uploading...';
 
   try {
-    const urls = await uploadImages(files);
+    const limit = uploadLimitMap[stateKey] || 10;
+    const current = Array.isArray(S[stateKey]) ? S[stateKey].length : 0;
+    const remaining = Math.max(0, limit - current);
+    if (remaining <= 0) {
+      throw new Error(`Maximum ${limit} images allowed.`);
+    }
+
+    const selected = files.slice(0, remaining);
+    if (!selected.length) {
+      throw new Error(`Maximum ${limit} images allowed.`);
+    }
+
+    const urls = await uploadImages(selected);
     if (fill) fill.style.width = '100%';
     if (status) status.textContent = 'Upload complete!';
 
     if (stateKey === 'carUploadedImages') {
       S.carUploadedImages.push(...urls);
       renderUploadedImages('uploadedImages', S.carUploadedImages, 'carUploadedImages');
+    } else if (stateKey === 'orderUploadedImages') {
+      S.orderUploadedImages.push(...urls.slice(0, remaining));
+      renderUploadedImages('orderUploadedImages', S.orderUploadedImages, 'orderUploadedImages');
     } else {
       S.aucUploadedImages.push(...urls);
       renderUploadedImages('aucUploadedImages', S.aucUploadedImages, 'aucUploadedImages');
@@ -208,6 +231,9 @@ function removeUploadedImage(url, stateKey) {
   if (stateKey === 'carUploadedImages') {
     S.carUploadedImages = S.carUploadedImages.filter(u => u !== url);
     renderUploadedImages('uploadedImages', S.carUploadedImages, 'carUploadedImages');
+  } else if (stateKey === 'orderUploadedImages') {
+    S.orderUploadedImages = S.orderUploadedImages.filter(u => u !== url);
+    renderUploadedImages('orderUploadedImages', S.orderUploadedImages, 'orderUploadedImages');
   } else {
     S.aucUploadedImages = S.aucUploadedImages.filter(u => u !== url);
     renderUploadedImages('aucUploadedImages', S.aucUploadedImages, 'aucUploadedImages');
@@ -237,6 +263,7 @@ async function uploadAgentAvatar(file) {
 document.addEventListener('DOMContentLoaded', () => {
   setupDropzone('uploadDropzone', 'carImageInput', 'carUploadedImages', 'uploadedImages');
   setupDropzone('aucUploadDropzone', 'aucImageInput', 'aucUploadedImages', 'aucUploadedImages');
+  setupDropzone('orderUploadDropzone', 'orderImageInput', 'orderUploadedImages', 'orderUploadedImages');
   renderAgentAvatarPreview(DEFAULT_AGENT_AVATAR);
 
   byId('agentAvatarUploadBtn')?.addEventListener('click', () => byId('agentAvatarFile')?.click());
@@ -973,8 +1000,8 @@ function renderOrderTable(orders) {
     <tr>
       <td><strong>${o.order_no}</strong></td>
       <td>${o.buyer_name || '-'}</td>
-      <td>${o.car ? `${o.car.brand} ${o.car.model}` : '-'}</td>
-      <td><span class="status-pill pill-${o.order_type}">${o.order_type}</span></td>
+      <td>${o.vehicle_label || (o.car ? `${o.car.brand} ${o.car.model}` : '-')}</td>
+      <td><span class="status-pill pill-${o.order_type}">${o.order_type_label || o.order_type}</span></td>
       <td>RM ${Number(o.amount||0).toLocaleString()}</td>
       <td><span class="status-pill pill-${o.status}">${o.status}</span></td>
       <td>${new Date(o.createdAt).toLocaleDateString('en-MY')}</td>
@@ -1009,6 +1036,32 @@ function resetOrderForm() {
   document.getElementById('createOrderForm').reset();
   document.getElementById('orderFormMsg').textContent = '';
   document.getElementById('orderFormMsg').className = 'form-msg';
+  S.orderUploadedImages = [];
+  const uploaded = document.getElementById('orderUploadedImages');
+  if (uploaded) uploaded.innerHTML = '';
+  updateOrderCustomInputs();
+}
+
+function updateOrderCustomInputs() {
+  const vehicleSelect = document.getElementById('orderCarId');
+  const customVehicleInput = document.getElementById('orderCustomVehicle');
+  const typeSelect = document.getElementById('orderTypeSelect');
+  const customTypeInput = document.getElementById('orderCustomType');
+
+  const isCustomVehicle = vehicleSelect?.value === 'custom';
+  const isCustomType = typeSelect?.value === 'custom';
+
+  if (customVehicleInput) {
+    customVehicleInput.classList.toggle('hidden', !isCustomVehicle);
+    customVehicleInput.required = Boolean(isCustomVehicle);
+    if (!isCustomVehicle) customVehicleInput.value = '';
+  }
+
+  if (customTypeInput) {
+    customTypeInput.classList.toggle('hidden', !isCustomType);
+    customTypeInput.required = Boolean(isCustomType);
+    if (!isCustomType) customTypeInput.value = '';
+  }
 }
 
 async function loadOrderFormDropdowns() {
@@ -1017,7 +1070,7 @@ async function loadOrderFormDropdowns() {
     const carData = await api('/api/cars?status=available&limit=500');
     const carSelect = document.getElementById('orderCarId');
     const currentVal = carSelect.value;
-    carSelect.innerHTML = '<option value="">-- Select Vehicle --</option>';
+    carSelect.innerHTML = '<option value="">-- Select Vehicle --</option><option value="custom">Custom Vehicle (Manual Input)</option>';
     (carData.cars || []).forEach(car => {
       carSelect.innerHTML += `<option value="${car.id}">${car.brand} ${car.model} (${car.year}) — RM ${Number(car.price||0).toLocaleString()}</option>`;
     });
@@ -1031,6 +1084,8 @@ async function loadOrderFormDropdowns() {
       }
     });
 
+    updateOrderCustomInputs();
+
     // Load agents
     const agentData = await api('/api/agent?is_active=true');
     const agentSelect = document.getElementById('orderAgentId');
@@ -1043,8 +1098,10 @@ async function loadOrderFormDropdowns() {
 
 async function submitOrder(e) {
   e.preventDefault();
-  const car_id = document.getElementById('orderCarId').value;
+  const vehicleSelection = document.getElementById('orderCarId').value;
+  const custom_vehicle = document.getElementById('orderCustomVehicle')?.value.trim();
   const order_type = document.getElementById('orderTypeSelect').value;
+  const custom_order_type = document.getElementById('orderCustomType')?.value.trim();
   const amount = document.getElementById('orderAmount').value;
   const buyer_name = document.getElementById('orderBuyerName').value.trim();
   const buyer_email = document.getElementById('orderBuyerEmail').value.trim();
@@ -1055,15 +1112,23 @@ async function submitOrder(e) {
   const delivery_address = document.getElementById('orderDeliveryAddress').value.trim();
   const notes = document.getElementById('orderNotes').value.trim();
 
-  if (!car_id || !amount || !buyer_name) {
-    document.getElementById('orderFormMsg').textContent = 'Vehicle, amount and buyer name are required.';
+  const isCustomVehicle = vehicleSelection === 'custom';
+  if ((!vehicleSelection || (isCustomVehicle && !custom_vehicle)) || !amount || !buyer_name) {
+    document.getElementById('orderFormMsg').textContent = 'Vehicle (or custom vehicle), amount and buyer name are required.';
+    document.getElementById('orderFormMsg').className = 'form-msg error';
+    return;
+  }
+  if (order_type === 'custom' && !custom_order_type) {
+    document.getElementById('orderFormMsg').textContent = 'Custom order type is required.';
     document.getElementById('orderFormMsg').className = 'form-msg error';
     return;
   }
 
   const payload = {
-    car_id: Number(car_id),
+    car_id: isCustomVehicle ? null : Number(vehicleSelection),
+    custom_vehicle: isCustomVehicle ? custom_vehicle : null,
     order_type,
+    custom_order_type: order_type === 'custom' ? custom_order_type : null,
     amount: Number(amount),
     buyer_name,
     buyer_email: buyer_email || null,
@@ -1071,6 +1136,7 @@ async function submitOrder(e) {
     agent_id: agent_id ? Number(agent_id) : null,
     delivery_address: delivery_address || null,
     notes: notes || null,
+    images: [...S.orderUploadedImages].slice(0, 5),
   };
 
   try {
@@ -1145,6 +1211,10 @@ async function viewOrder(orderId) {
     const agentInfo = o.agent ? `<tr><th>Agent</th><td>${o.agent.code} — ${o.agent.name}</td></tr>` : '';
     const paidInfo = o.paid_at ? `<tr><th>Paid At</th><td>${new Date(o.paid_at).toLocaleString('en-MY')}</td></tr>` : '';
     const deliveredInfo = o.delivered_at ? `<tr><th>Delivered At</th><td>${new Date(o.delivered_at).toLocaleString('en-MY')}</td></tr>` : '';
+    const orderImages = Array.isArray(o.images) ? o.images : [];
+    const imagesHtml = orderImages.length
+      ? `<div style="margin-top:14px"><div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase">Order Images</div><div class="uploaded-images">${orderImages.map((img, idx) => `<a href="${img}" target="_blank" rel="noopener noreferrer" class="uploaded-image" title="Image ${idx + 1}"><img src="${img}" alt="Order Image ${idx + 1}" /></a>`).join('')}</div></div>`
+      : '';
 
     document.getElementById('orderDetailNo').textContent = o.order_no;
     document.getElementById('orderDetailBody').innerHTML = `
@@ -1152,7 +1222,8 @@ async function viewOrder(orderId) {
         <div>
           <table class="detail-table">
             <tr><th>Order No</th><td><strong>${o.order_no}</strong></td></tr>
-            <tr><th>Type</th><td><span class="status-pill pill-${o.order_type}">${o.order_type}</span></td></tr>
+            <tr><th>Type</th><td><span class="status-pill pill-${o.order_type}">${o.order_type_label || o.order_type}</span></td></tr>
+            <tr><th>Vehicle</th><td>${o.vehicle_label || '-'}</td></tr>
             <tr><th>Buyer Name</th><td>${o.buyer_name || '-'}</td></tr>
             <tr><th>Buyer Email</th><td>${o.buyer_email || '-'}</td></tr>
             <tr><th>Buyer Phone</th><td>${o.buyer_phone || '-'}</td></tr>
@@ -1170,10 +1241,11 @@ async function viewOrder(orderId) {
             ${deliveredInfo}
             <tr><th>Created</th><td>${new Date(o.createdAt).toLocaleString('en-MY')}</td></tr>
             <tr><th>Last Updated</th><td>${new Date(o.updatedAt).toLocaleString('en-MY')}</td></tr>
-            ${o.car ? `<tr><th>Vehicle</th><td>${o.car.brand} ${o.car.model} (${o.car.year})</td></tr>` : ''}
+            ${o.car ? `<tr><th>Inventory Vehicle</th><td>${o.car.brand} ${o.car.model} (${o.car.year})</td></tr>` : ''}
           </table>
         </div>
       </div>
+      ${imagesHtml}
       ${progressHtml ? `<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light)">${progressHtml}</div>` : ''}
       <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-light);display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <span style="font-size:13px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">Actions:</span>
@@ -1452,6 +1524,8 @@ document.getElementById('auctionForm').addEventListener('submit', submitAuction)
 
 // ─── Event: Order Form ─────────────────────────────────────────────────────────
 document.getElementById('createOrderForm').addEventListener('submit', submitOrder);
+document.getElementById('orderCarId')?.addEventListener('change', updateOrderCustomInputs);
+document.getElementById('orderTypeSelect')?.addEventListener('change', updateOrderCustomInputs);
 
 // ─── Event: Agent Form ─────────────────────────────────────────────────────────
 document.getElementById('agentForm').addEventListener('submit', submitAgent);

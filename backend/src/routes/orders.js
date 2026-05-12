@@ -29,6 +29,26 @@ const generateOrderNo = () => {
   return `ORD-${dateStr}-${random}`;
 };
 
+const normalizeImageUrls = (value, max = 5) => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => (typeof item === 'string' ? item.trim() : ''))
+    .filter((item) => item && item.length <= 500)
+    .slice(0, max);
+};
+
+const resolveOrderTypePayload = ({ order_type, custom_order_type }) => {
+  const normalizedType = ['purchase', 'auction_win', 'custom'].includes(order_type) ? order_type : 'purchase';
+  const normalizedCustomType = normalizeText(custom_order_type);
+  if (normalizedType === 'custom' && !normalizedCustomType) {
+    return { error: 'Custom order type is required when order type is custom.' };
+  }
+  return {
+    order_type: normalizedType,
+    custom_order_type: normalizedType === 'custom' ? normalizedCustomType : null
+  };
+};
+
 const normalizeEmail = (value) => {
   if (typeof value !== 'string') return null;
   const email = value.trim().toLowerCase();
@@ -81,6 +101,11 @@ const serializeOrder = (order) => ({
   id: order.id,
   order_no: order.order_no,
   order_type: order.order_type,
+  custom_order_type: order.custom_order_type,
+  custom_vehicle: order.custom_vehicle,
+  order_type_label: order.order_type === 'custom' ? (order.custom_order_type || 'custom') : order.order_type,
+  vehicle_label: order.custom_vehicle || (order.car ? `${order.car.brand} ${order.car.model}` : null),
+  images: Array.isArray(order.images) ? order.images : [],
   amount: order.amount,
   deposit_paid: order.deposit_paid,
   status: order.status,
@@ -115,7 +140,7 @@ const serializeOrder = (order) => ({
 // ─── POST /api/orders — Create order (frontend: buy a car) ─────────────────────
 router.post('/', auth, async (req, res) => {
   try {
-    const { car_id, order_type, amount, delivery_address, agent_id } = req.body;
+    const { car_id, order_type, custom_order_type, amount, delivery_address, agent_id, images } = req.body;
     const user_id = req.user.id;
 
     if (!car_id || !amount) {
@@ -139,13 +164,21 @@ router.post('/', auth, async (req, res) => {
     }
 
     const user = await User.findByPk(user_id);
+    const orderTypePayload = resolveOrderTypePayload({ order_type, custom_order_type });
+    if (orderTypePayload.error) {
+      return res.status(400).json({ error: orderTypePayload.error });
+    }
+    const orderImages = normalizeImageUrls(images, 5);
 
     const order = await Order.create({
       order_no: generateOrderNo(),
       user_id,
       car_id,
       agent_id: agent_id || null,
-      order_type: ['purchase', 'auction_win'].includes(order_type) ? order_type : 'purchase',
+      order_type: orderTypePayload.order_type,
+      custom_order_type: orderTypePayload.custom_order_type,
+      custom_vehicle: null,
+      images: orderImages,
       amount: Number(amount),
       deposit_paid: 0,
       status: 'pending',
@@ -177,28 +210,33 @@ router.post('/', auth, async (req, res) => {
 router.post('/admin', auth, authorize('seller'), async (req, res) => {
   try {
     const {
-      car_id, order_type, amount, buyer_name, buyer_email, buyer_phone,
-      delivery_address, agent_id, notes
+      car_id, custom_vehicle, order_type, custom_order_type, amount, buyer_name, buyer_email, buyer_phone,
+      delivery_address, agent_id, notes, images
     } = req.body;
 
-    if (!car_id || !amount || !buyer_name) {
-      return res.status(400).json({ error: 'Car ID, amount, and buyer name are required.' });
+    const normalizedCustomVehicle = normalizeText(custom_vehicle);
+    if ((!car_id && !normalizedCustomVehicle) || !amount || !buyer_name) {
+      return res.status(400).json({ error: 'Vehicle (or custom vehicle), amount, and buyer name are required.' });
     }
 
-    const car = await Car.findByPk(car_id);
-    if (!car || car.is_deleted) {
-      return res.status(404).json({ error: 'Car not found.' });
-    }
-
-    // Check for existing active order for same car
-    const existingOrder = await Order.findOne({
-      where: {
-        car_id,
-        status: { [Op.notIn]: ['cancelled', 'refunded', 'completed'] }
+    const hasCarSelection = Boolean(car_id);
+    let car = null;
+    if (hasCarSelection) {
+      car = await Car.findByPk(car_id);
+      if (!car || car.is_deleted) {
+        return res.status(404).json({ error: 'Car not found.' });
       }
-    });
-    if (existingOrder) {
-      return res.status(400).json({ error: 'An active order already exists for this vehicle.' });
+
+      // Check for existing active order for same car
+      const existingOrder = await Order.findOne({
+        where: {
+          car_id,
+          status: { [Op.notIn]: ['cancelled', 'refunded', 'completed'] }
+        }
+      });
+      if (existingOrder) {
+        return res.status(400).json({ error: 'An active order already exists for this vehicle.' });
+      }
     }
 
     const buyerNameInput = normalizeText(buyer_name);
@@ -213,13 +251,21 @@ router.post('/admin', auth, authorize('seller'), async (req, res) => {
     const snapshotBuyerName = linkedUser?.name || buyerNameInput;
     const snapshotBuyerEmail = linkedUser?.email || buyerEmailInput;
     const snapshotBuyerPhone = buyerPhoneInput || linkedUser?.phone || null;
+    const orderTypePayload = resolveOrderTypePayload({ order_type, custom_order_type });
+    if (orderTypePayload.error) {
+      return res.status(400).json({ error: orderTypePayload.error });
+    }
+    const orderImages = normalizeImageUrls(images, 5);
 
     const order = await Order.create({
       order_no: generateOrderNo(),
       user_id: linkedUser.id,
-      car_id,
+      car_id: hasCarSelection ? Number(car_id) : null,
       agent_id: agent_id || null,
-      order_type: ['purchase', 'auction_win'].includes(order_type) ? order_type : 'purchase',
+      order_type: orderTypePayload.order_type,
+      custom_order_type: orderTypePayload.custom_order_type,
+      custom_vehicle: hasCarSelection ? null : normalizedCustomVehicle,
+      images: orderImages,
       amount: Number(amount),
       deposit_paid: 0,
       status: 'pending',
@@ -230,8 +276,10 @@ router.post('/admin', auth, authorize('seller'), async (req, res) => {
       notes: normalizeText(notes),
     });
 
-    // Mark car as sold
-    await car.update({ status: 'sold' });
+    // Mark car as sold only for inventory-linked orders
+    if (car) {
+      await car.update({ status: 'sold' });
+    }
 
     const fullOrder = await Order.findByPk(order.id, {
       include: [
@@ -483,7 +531,7 @@ router.put('/:id', auth, authorize('seller'), async (req, res) => {
 
     const {
       buyer_name, buyer_email, buyer_phone, amount, deposit_paid,
-      agent_id, delivery_address, notes
+      agent_id, delivery_address, notes, custom_vehicle, custom_order_type, images
     } = req.body;
 
     const nextBuyerNameInput = buyer_name !== undefined ? normalizeText(buyer_name) : order.buyer_name;
@@ -507,6 +555,9 @@ router.put('/:id', auth, authorize('seller'), async (req, res) => {
       buyer_name: nextBuyerName,
       buyer_email: nextBuyerEmail,
       buyer_phone: nextBuyerPhone,
+      custom_vehicle: custom_vehicle !== undefined ? normalizeText(custom_vehicle) : order.custom_vehicle,
+      custom_order_type: custom_order_type !== undefined ? normalizeText(custom_order_type) : order.custom_order_type,
+      images: images !== undefined ? normalizeImageUrls(images, 5) : (Array.isArray(order.images) ? order.images : []),
       amount: amount !== undefined ? Number(amount) : order.amount,
       deposit_paid: deposit_paid !== undefined ? Number(deposit_paid) : order.deposit_paid,
       agent_id: agent_id !== undefined ? (agent_id ? Number(agent_id) : null) : order.agent_id,

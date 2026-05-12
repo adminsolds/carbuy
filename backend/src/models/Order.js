@@ -23,7 +23,7 @@ const Order = sequelize.define('Order', {
   },
   car_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
     field: 'car_id',
     references: {
       model: 'cars',
@@ -39,10 +39,25 @@ const Order = sequelize.define('Order', {
       key: 'id'
     }
   },
-  // Order type: purchase | auction_win
+  // Order type: purchase | auction_win | custom
   order_type: {
-    type: DataTypes.ENUM('purchase', 'auction_win'),
+    type: DataTypes.ENUM('purchase', 'auction_win', 'custom'),
     defaultValue: 'purchase'
+  },
+  custom_order_type: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    field: 'custom_order_type'
+  },
+  custom_vehicle: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    field: 'custom_vehicle'
+  },
+  images: {
+    type: DataTypes.JSON,
+    allowNull: false,
+    defaultValue: []
   },
   // Final price agreed
   amount: {
@@ -117,6 +132,7 @@ const Order = sequelize.define('Order', {
     { fields: ['agent_id'] },
     { fields: ['status'] },
     { fields: ['order_no'] },
+    { fields: ['order_type'] },
     { fields: ['createdAt'] }
   ]
 });
