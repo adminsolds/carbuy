@@ -23,7 +23,7 @@
   max-width: 900px;
   margin: 0 auto 1rem;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr 1fr auto;
   gap: 0.6rem;
 }
 
@@ -335,6 +335,43 @@
   object-fit: cover;
 }
 
+.order-manual-steps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.manual-step-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  padding: 0.55rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.manual-step-item.current {
+  border-color: #1E3A5F;
+  background: #eef3fa;
+  box-shadow: inset 0 0 0 1px rgba(30, 58, 95, 0.08);
+}
+
+.manual-step-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.35px;
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.manual-step-text {
+  font-size: 0.9rem;
+  color: #111827;
+  line-height: 1.35;
+}
+
 /* ─── Order Progress ──────────────────────────────────────────────────── */
 .order-progress {
   display: flex;
@@ -476,6 +513,10 @@
 
   .order-progress {
     gap: 0;
+  }
+
+  .order-manual-steps {
+    grid-template-columns: 1fr;
   }
 
   .step-label {

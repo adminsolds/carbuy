@@ -1,6 +1,7 @@
 const { AppSetting } = require('../models');
 
 const AUCTION_KEY = 'auction_enabled';
+const EMAIL_PROVIDER_KEY = 'email_provider';
 
 const parseBoolean = (value, fallback = false) => {
   if (typeof value === 'boolean') return value;
@@ -36,6 +37,15 @@ const ensureSettingsSeeded = async () => {
       key: AUCTION_KEY,
       value: getDefaultAuctionEnabled() ? 'true' : 'false',
       description: 'Global auction feature switch',
+    });
+  }
+
+  const emailProvider = await AppSetting.findOne({ where: { key: EMAIL_PROVIDER_KEY } });
+  if (!emailProvider) {
+    await AppSetting.create({
+      key: EMAIL_PROVIDER_KEY,
+      value: 'smtp',
+      description: 'Email provider: smtp | resend'
     });
   }
 };

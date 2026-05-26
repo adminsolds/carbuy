@@ -4,16 +4,33 @@ import api, { getApiErrorMessage } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import './Tracking.css';
 
+const ORDER_STEP_LABELS = [
+  { key: 'step1', label: 'Step1' },
+  { key: 'step2', label: 'Step2' },
+  { key: 'step3', label: 'Step3' },
+  { key: 'step4', label: 'Step4' },
+  { key: 'step5', label: 'Step5' },
+  { key: 'step6', label: 'Step6' },
+];
+
+const STEP_BADGE_CLASS = {
+  step1: 'outbid',
+  step2: 'winning',
+  step3: 'winning',
+  step4: 'winning',
+  step5: 'winning',
+  step6: 'won',
+};
+
 function Tracking() {
   const { isAuthenticated } = useAuth();
   const [bids, setBids] = useState([]);
   const [orders, setOrders] = useState([]);
   const [activeTab, setActiveTab] = useState('orders');
   const [lookupAccount, setLookupAccount] = useState('');
+  const [lookupOrderNo, setLookupOrderNo] = useState('');
   const [hasLookedUp, setHasLookedUp] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
-  const [orderSearch, setOrderSearch] = useState('');
-  const [orderStatus, setOrderStatus] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -45,10 +62,11 @@ function Tracking() {
     fetchData();
   }, [isAuthenticated]);
 
-  const lookupOrdersByAccount = async () => {
+  const lookupOrders = async () => {
     const account = lookupAccount.trim();
-    if (!account) {
-      setError('Please enter your account (email / phone / name).');
+    const order_no = lookupOrderNo.trim();
+    if (!account && !order_no) {
+      setError('Please enter account or order number.');
       return;
     }
 
@@ -56,7 +74,12 @@ function Tracking() {
       setError('');
       setLookupLoading(true);
       setHasLookedUp(true);
-      const response = await api.get('/orders/lookup', { params: { account } });
+      const response = await api.get('/orders/lookup', {
+        params: {
+          account: account || undefined,
+          order_no: order_no || undefined
+        }
+      });
       setOrders(response.data.orders || []);
       setActiveTab('orders');
     } catch (requestError) {
@@ -77,62 +100,69 @@ function Tracking() {
     return badges[status] || badges.lost;
   };
 
-  const getOrderBadge = (status) => {
-    const map = {
-      pending: { class: 'outbid', label: 'Pending' },
-      deposit_paid: { class: 'winning', label: 'Deposit Paid' },
-      paid: { class: 'winning', label: 'Paid' },
-      processing: { class: 'winning', label: 'Processing' },
-      shipped: { class: 'winning', label: 'Shipped' },
-      delivered: { class: 'won', label: 'Delivered' },
-      completed: { class: 'won', label: 'Completed' },
-      cancelled: { class: 'lost', label: 'Cancelled' },
-      refunded: { class: 'lost', label: 'Refunded' },
-    };
-    return map[status] || { class: 'outbid', label: status };
+  const getOrderStepKey = (order) => {
+    const statusSteps = order?.status_steps;
+    if (!statusSteps || typeof statusSteps !== 'object') return '';
+    const activeStep = typeof statusSteps.active_step === 'string' ? statusSteps.active_step.trim().toLowerCase() : '';
+    if (ORDER_STEP_LABELS.some((item) => item.key === activeStep)) return activeStep;
+    for (let i = ORDER_STEP_LABELS.length - 1; i >= 0; i -= 1) {
+      const stepKey = ORDER_STEP_LABELS[i].key;
+      const text = typeof statusSteps[stepKey] === 'string' ? statusSteps[stepKey].trim() : '';
+      if (text) return stepKey;
+    }
+    return '';
   };
 
-  const formatStatusFlow = (status) => {
-    const steps = ['pending', 'deposit_paid', 'paid', 'processing', 'shipped', 'delivered', 'completed'];
-    const currentIndex = steps.indexOf(status);
-    if (currentIndex === -1) return null;
-    return steps.slice(0, currentIndex + 1);
+  const getOrderBadge = (order) => {
+    const stepKey = getOrderStepKey(order);
+    if (stepKey) {
+      const label = ORDER_STEP_LABELS.find((item) => item.key === stepKey)?.label || stepKey;
+      return { class: STEP_BADGE_CLASS[stepKey] || 'winning', label };
+    }
+    const status = String(order?.status || 'unknown').toLowerCase();
+    if (status === 'cancelled' || status === 'refunded') {
+      return { class: 'lost', label: status.replace(/_/g, ' ') };
+    }
+    return { class: 'outbid', label: status.replace(/_/g, ' ') };
   };
 
-  const filteredOrders = orders.filter((order) => {
-    if (orderStatus !== 'all' && order.status !== orderStatus) return false;
-    if (!orderSearch.trim()) return true;
-    const keyword = orderSearch.trim().toLowerCase();
-    const text = [
-      order.order_no,
-      order.custom_vehicle,
-      order.custom_order_type,
-      order.car ? `${order.car.brand} ${order.car.model}` : '',
-      order.status,
-    ].join(' ').toLowerCase();
-    return text.includes(keyword);
-  });
+  const getManualStatusSteps = (statusSteps) => {
+    if (!statusSteps || typeof statusSteps !== 'object') return [];
+    const activeStep = typeof statusSteps.active_step === 'string' ? statusSteps.active_step.trim().toLowerCase() : '';
+    return ORDER_STEP_LABELS
+      .map(({ key, label }) => ({
+        label,
+        text: typeof statusSteps[key] === 'string' ? statusSteps[key].trim() : '',
+        isCurrent: activeStep === key
+      }))
+      .filter((item) => item.text.length > 0);
+  };
 
   return (
     <div className="tracking">
       <div className="container">
         <h1>MY DASHBOARD</h1>
-        <p className="subtitle">{isAuthenticated ? 'Track your orders and auction bids' : 'Track your order status by account'}</p>
+        <p className="subtitle">{isAuthenticated ? 'Track your orders and auction bids' : 'Track your order status by account or order number'}</p>
 
-        {!isAuthenticated && (
-          <div className="order-lookup-box">
-            <input
-              type="text"
-              value={lookupAccount}
-              onChange={(e) => setLookupAccount(e.target.value)}
-              placeholder="Enter account (email / phone / name)"
-              onKeyDown={(e) => { if (e.key === 'Enter') lookupOrdersByAccount(); }}
-            />
-            <button type="button" onClick={lookupOrdersByAccount} disabled={lookupLoading}>
-              {lookupLoading ? 'Searching...' : 'Search Orders'}
-            </button>
-          </div>
-        )}
+        <div className="order-lookup-box">
+          <input
+            type="text"
+            value={lookupAccount}
+            onChange={(e) => setLookupAccount(e.target.value)}
+            placeholder="Enter account (email / phone / name)"
+            onKeyDown={(e) => { if (e.key === 'Enter') lookupOrders(); }}
+          />
+          <input
+            type="text"
+            value={lookupOrderNo}
+            onChange={(e) => setLookupOrderNo(e.target.value)}
+            placeholder="Enter order number (e.g. ORD-20260521-ABC123)"
+            onKeyDown={(e) => { if (e.key === 'Enter') lookupOrders(); }}
+          />
+          <button type="button" onClick={lookupOrders} disabled={lookupLoading}>
+            {lookupLoading ? 'Searching...' : 'Search Orders'}
+          </button>
+        </div>
 
         <div className="tracking-tabs">
           <button
@@ -158,41 +188,20 @@ function Tracking() {
             </div>
           ) : activeTab === 'orders' ? (
             <>
-              <div className="order-filters">
-                <input
-                  type="text"
-                  value={orderSearch}
-                  onChange={(e) => setOrderSearch(e.target.value)}
-                  placeholder="Search by order number or car model"
-                />
-                <select value={orderStatus} onChange={(e) => setOrderStatus(e.target.value)}>
-                  <option value="all">All Status</option>
-                  <option value="pending">Pending</option>
-                  <option value="deposit_paid">Deposit Paid</option>
-                  <option value="paid">Paid</option>
-                  <option value="processing">Processing</option>
-                  <option value="shipped">Shipped</option>
-                  <option value="delivered">Delivered</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="refunded">Refunded</option>
-                </select>
-              </div>
-
-              {filteredOrders.length === 0 ? (
+              {orders.length === 0 ? (
                 <div className="empty-state">
                   <p>
                     {orders.length === 0
-                      ? (isAuthenticated ? "You haven't placed any orders yet." : (hasLookedUp ? 'No orders found for this account.' : 'Enter your account above to search orders.'))
+                      ? (isAuthenticated ? "You haven't placed any orders yet." : (hasLookedUp ? 'No orders found for this account / order number.' : 'Enter account or order number above to search orders.'))
                       : 'No matching orders found.'}
                   </p>
                   <Link to="/cars" className="browse-btn">Browse Cars</Link>
                 </div>
               ) : (
                 <div className="orders-list">
-                  {filteredOrders.map((order) => {
-                    const badge = getOrderBadge(order.status);
-                    const completedSteps = formatStatusFlow(order.status);
+                  {orders.map((order) => {
+                    const badge = getOrderBadge(order);
+                    const manualSteps = getManualStatusSteps(order.status_steps);
                     return (
                       <div key={order.id} className="order-card">
                         <div className="order-header">
@@ -232,24 +241,20 @@ function Tracking() {
                           </div>
                         )}
 
-                        {completedSteps && (
-                          <div className="order-progress">
-                            {['pending', 'deposit_paid', 'paid', 'processing', 'shipped', 'delivered'].map((step) => {
-                              const isDone = completedSteps.includes(step);
-                              const isCurrent = order.status === step;
-                              return (
-                                <div key={step} className={`progress-step ${isDone ? 'done' : ''} ${isCurrent ? 'current' : ''}`}>
-                                  <div className="step-dot"></div>
-                                  <span className="step-label">{step.replace('_', ' ')}</span>
-                                </div>
-                              );
-                            })}
-                            {order.status === 'completed' && (
-                              <div className={`progress-step done`}>
-                                <div className="step-dot"></div>
-                                <span className="step-label">completed</span>
+                        {manualSteps.length > 0 && (
+                          <div className="order-manual-steps">
+                            {manualSteps.map((item) => (
+                              <div key={`${order.id}-${item.label}`} className={`manual-step-item ${item.isCurrent ? 'current' : ''}`}>
+                                <span className="manual-step-label">{item.label}</span>
+                                <span className="manual-step-text">{item.text}</span>
                               </div>
-                            )}
+                            ))}
+                          </div>
+                        )}
+
+                        {manualSteps.length === 0 && (
+                          <div className="order-cancelled-note" style={{ color: '#6b7280' }}>
+                            No step updates yet.
                           </div>
                         )}
 

@@ -11,6 +11,7 @@ frontend/*.log
 
 # Local databases
 backend/database.sqlite
+backend/database.test.sqlite
 backend/database.sqlite-shm
 backend/database.sqlite-wal
 

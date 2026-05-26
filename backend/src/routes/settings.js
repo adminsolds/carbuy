@@ -20,7 +20,17 @@ router.get('/public', async (req, res) => {
 router.get('/', auth, authorize('seller'), async (req, res) => {
   try {
     const auctionEnabled = await getAuctionEnabled();
-    const settings = await AppSetting.findAll({ where: { key: { [require('sequelize').Op.like]: 'smtp_%' } } });
+    const { Op } = require('sequelize');
+    const settings = await AppSetting.findAll({
+      where: {
+        [Op.or]: [
+          { key: { [Op.like]: 'smtp_%' } },
+          { key: { [Op.like]: 'resend_%' } },
+          { key: 'email_provider' },
+          { key: 'app_url' }
+        ]
+      }
+    });
     const smtpSettings = {};
     settings.forEach(s => { smtpSettings[s.key] = s.value; });
     res.json({ auctionEnabled, smtp: smtpSettings });
@@ -44,11 +54,27 @@ router.put('/auction-enabled', auth, authorize('seller'), async (req, res) => {
   }
 });
 
-const EMAIL_KEYS = ['smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user', 'smtp_pass', 'smtp_from', 'app_url'];
+const EMAIL_KEYS = [
+  'email_provider',
+  'smtp_host',
+  'smtp_port',
+  'smtp_secure',
+  'smtp_user',
+  'smtp_pass',
+  'smtp_from',
+  'resend_api_key',
+  'resend_from',
+  'app_url'
+];
 
 router.put('/smtp', auth, authorize('seller'), async (req, res) => {
   try {
-    const { smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, smtp_from, app_url } = req.body;
+    const {
+      email_provider,
+      smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, smtp_from,
+      resend_api_key, resend_from,
+      app_url
+    } = req.body;
 
     const upsert = async (key, value) => {
       const existing = await AppSetting.findOne({ where: { key } });
@@ -59,20 +85,29 @@ router.put('/smtp', auth, authorize('seller'), async (req, res) => {
       }
     };
 
+    if (email_provider !== undefined) {
+      const provider = String(email_provider || '').trim().toLowerCase();
+      if (!['smtp', 'resend'].includes(provider)) {
+        return res.status(400).json({ error: 'email_provider must be smtp or resend.' });
+      }
+      await upsert('email_provider', provider);
+    }
     if (smtp_host !== undefined) await upsert('smtp_host', smtp_host);
     if (smtp_port !== undefined) await upsert('smtp_port', String(smtp_port));
     if (smtp_secure !== undefined) await upsert('smtp_secure', String(smtp_secure));
     if (smtp_user !== undefined) await upsert('smtp_user', smtp_user);
     if (smtp_pass !== undefined) await upsert('smtp_pass', smtp_pass);
     if (smtp_from !== undefined) await upsert('smtp_from', smtp_from);
+    if (resend_api_key !== undefined) await upsert('resend_api_key', resend_api_key);
+    if (resend_from !== undefined) await upsert('resend_from', resend_from);
     if (app_url !== undefined) await upsert('app_url', app_url);
 
     invalidateTransporter();
 
-    res.json({ message: 'SMTP settings updated.' });
+    res.json({ message: 'Email settings updated.' });
   } catch (error) {
-    console.error('Update SMTP settings error:', error);
-    res.status(500).json({ error: 'Failed to update SMTP settings.' });
+    console.error('Update email settings error:', error);
+    res.status(500).json({ error: 'Failed to update email settings.' });
   }
 });
 

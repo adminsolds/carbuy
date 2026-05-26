@@ -14,6 +14,7 @@ const S = {
   // Orders
   orderPage: 1, orderLimit: 10, orderTotal: 0,
   selectedOrderId: null,
+  orderCustomVehicleDetails: null,
 
   // Users
   userPage: 1, userLimit: 10, userTotal: 0,
@@ -456,7 +457,18 @@ async function loadSettings() {
     document.getElementById('smtpFrom').value = smtp.smtp_from || '';
     document.getElementById('smtpAppUrl').value = smtp.app_url || '';
     document.getElementById('smtpSecure').value = smtp.smtp_secure || 'false';
+    document.getElementById('emailProvider').value = smtp.email_provider || 'smtp';
+    document.getElementById('resendApiKey').value = smtp.resend_api_key || '';
+    document.getElementById('resendFrom').value = smtp.resend_from || '';
+    refreshEmailProviderUi();
   } catch { /* non-critical */ }
+}
+
+function refreshEmailProviderUi() {
+  const provider = (document.getElementById('emailProvider')?.value || 'smtp').toLowerCase();
+  document.getElementById('smtpFields')?.classList.toggle('hidden', provider !== 'smtp');
+  document.getElementById('smtpSecureWrap')?.classList.toggle('hidden', provider !== 'smtp');
+  document.getElementById('resendFields')?.classList.toggle('hidden', provider !== 'resend');
 }
 
 function refreshAuctionUI() {
@@ -930,17 +942,140 @@ async function submitAgent(e) {
 }
 
 // ─── Orders ─────────────────────────────────────────────────────────────────────
-const VALID_NEXT_STATUS = {
-  pending: ['deposit_paid', 'cancelled'],
-  deposit_paid: ['paid', 'cancelled'],
-  paid: ['processing', 'cancelled'],
-  processing: ['shipped', 'cancelled'],
-  shipped: ['delivered', 'cancelled'],
-  delivered: ['completed'],
-  completed: [],
-  cancelled: ['refunded'],
-  refunded: []
-};
+const ORDER_STEP_KEYS = ['step1', 'step2', 'step3', 'step4', 'step5', 'step6'];
+const CUSTOM_VEHICLE_FIELDS = [
+  'brand', 'model', 'year', 'color', 'steering', 'repaired',
+  'transmission', 'cc', 'drive', 'fuel', 'mileage'
+];
+
+function normalizeOrderStatusStepsForUi(statusSteps) {
+  const source = statusSteps && typeof statusSteps === 'object' ? statusSteps : {};
+  const normalized = ORDER_STEP_KEYS.reduce((acc, key) => {
+    acc[key] = typeof source[key] === 'string' ? source[key] : '';
+    return acc;
+  }, {});
+  const activeStep = typeof source.active_step === 'string' ? source.active_step.trim().toLowerCase() : '';
+  normalized.active_step = ORDER_STEP_KEYS.includes(activeStep) ? activeStep : '';
+  return normalized;
+}
+
+function emptyCustomVehicleDetails() {
+  return {
+    brand: '',
+    model: '',
+    year: '',
+    color: '',
+    steering: '',
+    repaired: '',
+    transmission: '',
+    cc: '',
+    drive: '',
+    fuel: '',
+    mileage: ''
+  };
+}
+
+function normalizeCustomVehicleDetailsForUi(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  const details = emptyCustomVehicleDetails();
+  CUSTOM_VEHICLE_FIELDS.forEach((key) => {
+    details[key] = typeof source[key] === 'string' ? source[key].trim() : '';
+  });
+  return details;
+}
+
+function collectCustomVehicleDetailsFromModal() {
+  return {
+    brand: (byId('cvBrand')?.value || '').trim(),
+    model: (byId('cvModel')?.value || '').trim(),
+    year: (byId('cvYear')?.value || '').trim(),
+    color: (byId('cvColor')?.value || '').trim(),
+    steering: (byId('cvSteering')?.value || '').trim(),
+    repaired: (byId('cvRepaired')?.value || '').trim(),
+    transmission: (byId('cvTransmission')?.value || '').trim(),
+    cc: (byId('cvCc')?.value || '').trim(),
+    drive: (byId('cvDrive')?.value || '').trim(),
+    fuel: (byId('cvFuel')?.value || '').trim(),
+    mileage: (byId('cvMileage')?.value || '').trim(),
+  };
+}
+
+function fillCustomVehicleModal(detailsValue) {
+  const details = normalizeCustomVehicleDetailsForUi(detailsValue);
+  byId('cvBrand').value = details.brand;
+  byId('cvModel').value = details.model;
+  byId('cvYear').value = details.year;
+  byId('cvColor').value = details.color;
+  byId('cvSteering').value = details.steering;
+  byId('cvRepaired').value = details.repaired;
+  byId('cvTransmission').value = details.transmission;
+  byId('cvCc').value = details.cc;
+  byId('cvDrive').value = details.drive;
+  byId('cvFuel').value = details.fuel;
+  byId('cvMileage').value = details.mileage;
+}
+
+function buildCustomVehicleSummary(detailsValue) {
+  const details = normalizeCustomVehicleDetailsForUi(detailsValue);
+  const title = [details.brand, details.model, details.year].filter(Boolean).join(' ');
+  const extras = [
+    details.color ? `Color: ${details.color}` : '',
+    details.transmission ? `Transmission: ${details.transmission}` : '',
+    details.fuel ? `Fuel: ${details.fuel}` : '',
+    details.mileage ? `Mileage: ${details.mileage}` : ''
+  ].filter(Boolean);
+  if (!title && !extras.length) return '';
+  return [title || 'Custom Vehicle', ...extras].join(' | ');
+}
+
+function updateCustomVehicleSummaryInput() {
+  const input = byId('orderCustomVehicle');
+  if (!input) return;
+  input.value = buildCustomVehicleSummary(S.orderCustomVehicleDetails);
+}
+
+function openCustomVehicleModal() {
+  fillCustomVehicleModal(S.orderCustomVehicleDetails);
+  const msgEl = byId('customVehicleModalMsg');
+  if (msgEl) {
+    msgEl.textContent = '';
+    msgEl.className = 'form-msg';
+  }
+  byId('customVehicleModal')?.classList.remove('hidden');
+}
+
+function closeCustomVehicleModal() {
+  byId('customVehicleModal')?.classList.add('hidden');
+}
+
+function clearCustomVehicleDetails() {
+  S.orderCustomVehicleDetails = null;
+  updateCustomVehicleSummaryInput();
+}
+
+function saveCustomVehicleDetails() {
+  const details = collectCustomVehicleDetailsFromModal();
+  if (!details.brand && !details.model) {
+    const msgEl = byId('customVehicleModalMsg');
+    if (msgEl) {
+      msgEl.textContent = 'Please provide at least Brand or Model.';
+      msgEl.className = 'form-msg error';
+    }
+    return;
+  }
+  S.orderCustomVehicleDetails = details;
+  updateCustomVehicleSummaryInput();
+  closeCustomVehicleModal();
+}
+
+function enforceSingleDetailStepCheck(selectedIndex) {
+  for (let i = 1; i <= 6; i += 1) {
+    if (i !== selectedIndex) {
+      const checkbox = document.getElementById(`orderStatusStepCheck${i}`);
+      if (checkbox) checkbox.checked = false;
+    }
+  }
+}
 
 async function loadOrders(page = 1) {
   S.orderPage = page;
@@ -1037,30 +1172,75 @@ function resetOrderForm() {
   document.getElementById('orderFormMsg').textContent = '';
   document.getElementById('orderFormMsg').className = 'form-msg';
   S.orderUploadedImages = [];
+  S.orderCustomVehicleDetails = null;
   const uploaded = document.getElementById('orderUploadedImages');
   if (uploaded) uploaded.innerHTML = '';
+  updateCustomVehicleSummaryInput();
+  closeCustomVehicleModal();
   updateOrderCustomInputs();
 }
 
-function updateOrderCustomInputs() {
+function updateOrderCustomInputs(options = {}) {
+  const openEditor = options.openEditor === true;
   const vehicleSelect = document.getElementById('orderCarId');
-  const customVehicleInput = document.getElementById('orderCustomVehicle');
+  const customVehicleBlock = document.getElementById('orderCustomVehicleBlock');
   const typeSelect = document.getElementById('orderTypeSelect');
   const customTypeInput = document.getElementById('orderCustomType');
 
   const isCustomVehicle = vehicleSelect?.value === 'custom';
   const isCustomType = typeSelect?.value === 'custom';
 
-  if (customVehicleInput) {
-    customVehicleInput.classList.toggle('hidden', !isCustomVehicle);
-    customVehicleInput.required = Boolean(isCustomVehicle);
-    if (!isCustomVehicle) customVehicleInput.value = '';
+  if (customVehicleBlock) {
+    customVehicleBlock.classList.toggle('hidden', !isCustomVehicle);
+  }
+
+  if (!isCustomVehicle) {
+    S.orderCustomVehicleDetails = null;
+    updateCustomVehicleSummaryInput();
+    closeCustomVehicleModal();
+  } else if (openEditor) {
+    openCustomVehicleModal();
   }
 
   if (customTypeInput) {
     customTypeInput.classList.toggle('hidden', !isCustomType);
     customTypeInput.required = Boolean(isCustomType);
     if (!isCustomType) customTypeInput.value = '';
+  }
+}
+
+function collectCreateOrderStatusSteps() {
+  const steps = {};
+  let lastFilledStep = '';
+  for (let i = 1; i <= 6; i += 1) {
+    const key = `step${i}`;
+    const value = (document.getElementById(`createOrderStatusStep${i}`)?.value || '').trim();
+    if (value.length > 200) {
+      throw new Error(`Step${i} must be 200 characters or less.`);
+    }
+    steps[key] = value;
+    if (value) lastFilledStep = key;
+  }
+  let activeStep = '';
+  for (let i = 1; i <= 6; i += 1) {
+    if (document.getElementById(`createOrderStatusStepCheck${i}`)?.checked) {
+      activeStep = `step${i}`;
+      break;
+    }
+  }
+  if (!activeStep && lastFilledStep) {
+    activeStep = lastFilledStep;
+  }
+  steps.active_step = activeStep;
+  return steps;
+}
+
+function enforceSingleCreateStepCheck(selectedIndex) {
+  for (let i = 1; i <= 6; i += 1) {
+    if (i !== selectedIndex) {
+      const checkbox = document.getElementById(`createOrderStatusStepCheck${i}`);
+      if (checkbox) checkbox.checked = false;
+    }
   }
 }
 
@@ -1107,14 +1287,26 @@ async function submitOrder(e) {
   const buyer_email = document.getElementById('orderBuyerEmail').value.trim();
   const buyer_phone = document.getElementById('orderBuyerPhone').value.trim();
   const agent_id = document.getElementById('orderAgentId').value;
-  const initial_status = document.getElementById('orderInitialStatus').value;
   const deposit_paid = Number(document.getElementById('orderDepositPaid').value) || 0;
   const delivery_address = document.getElementById('orderDeliveryAddress').value.trim();
   const notes = document.getElementById('orderNotes').value.trim();
+  let status_steps = null;
+  try {
+    status_steps = collectCreateOrderStatusSteps();
+  } catch (stepError) {
+    document.getElementById('orderFormMsg').textContent = stepError.message;
+    document.getElementById('orderFormMsg').className = 'form-msg error';
+    return;
+  }
 
   const isCustomVehicle = vehicleSelection === 'custom';
   if ((!vehicleSelection || (isCustomVehicle && !custom_vehicle)) || !amount || !buyer_name) {
     document.getElementById('orderFormMsg').textContent = 'Vehicle (or custom vehicle), amount and buyer name are required.';
+    document.getElementById('orderFormMsg').className = 'form-msg error';
+    return;
+  }
+  if (isCustomVehicle && (!S.orderCustomVehicleDetails || (!S.orderCustomVehicleDetails.brand && !S.orderCustomVehicleDetails.model))) {
+    document.getElementById('orderFormMsg').textContent = 'Please complete custom vehicle details first.';
     document.getElementById('orderFormMsg').className = 'form-msg error';
     return;
   }
@@ -1127,6 +1319,7 @@ async function submitOrder(e) {
   const payload = {
     car_id: isCustomVehicle ? null : Number(vehicleSelection),
     custom_vehicle: isCustomVehicle ? custom_vehicle : null,
+    custom_vehicle_details: isCustomVehicle ? normalizeCustomVehicleDetailsForUi(S.orderCustomVehicleDetails) : null,
     order_type,
     custom_order_type: order_type === 'custom' ? custom_order_type : null,
     amount: Number(amount),
@@ -1136,6 +1329,7 @@ async function submitOrder(e) {
     agent_id: agent_id ? Number(agent_id) : null,
     delivery_address: delivery_address || null,
     notes: notes || null,
+    status_steps,
     images: [...S.orderUploadedImages].slice(0, 5),
   };
 
@@ -1144,14 +1338,7 @@ async function submitOrder(e) {
     const d = await api('/api/orders/admin', { method: 'POST', body: JSON.stringify(payload) });
     const newOrder = d.order;
 
-    // Step 2: If initial status is not pending, update status
-    if (initial_status !== 'pending') {
-      await api(`/api/orders/${newOrder.id}/status`, {
-        method: 'PUT', body: JSON.stringify({ status: initial_status })
-      });
-    }
-
-    // Step 3: If deposit paid, update it
+    // Step 2: If deposit paid, update it
     if (deposit_paid > 0) {
       await api(`/api/orders/${newOrder.id}`, {
         method: 'PUT', body: JSON.stringify({ deposit_paid })
@@ -1178,39 +1365,44 @@ async function viewOrder(orderId) {
     const o = d.order;
     S.selectedOrderId = orderId;
 
-    // Build status progress bar
-    const steps = ['pending','deposit_paid','paid','processing','shipped','delivered','completed'];
-    const cancelledSteps = ['pending','deposit_paid','paid','processing','shipped','delivered'];
-    const currentIndex = steps.indexOf(o.status);
-    const isCancelled = ['cancelled','refunded'].includes(o.status);
+    const statusSteps = normalizeOrderStatusStepsForUi(o.status_steps);
+    const statusStepsHtml = ORDER_STEP_KEYS.map((key, index) => `
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label for="orderStatusStep${index + 1}" style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <span>Step${index + 1}</span>
+          <span style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:none">
+            <input type="checkbox" id="orderStatusStepCheck${index + 1}" ${statusSteps.active_step === key ? 'checked' : ''} onchange="if(this.checked){enforceSingleDetailStepCheck(${index + 1})}" />
+            Current
+          </span>
+        </label>
+        <textarea id="orderStatusStep${index + 1}" data-step-key="${key}" maxlength="200" rows="2" placeholder="Enter Step${index + 1} status (max 200 chars)" style="resize:vertical;min-height:68px;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:#fff;color:var(--text-primary)">${statusSteps[key] || ''}</textarea>
+      </div>
+    `).join('');
 
-    let progressHtml = '';
-    if (isCancelled) {
-      progressHtml = `<div class="order-status-bar">
-        ${cancelledSteps.map((step, i) => {
-          const done = i < cancelledSteps.indexOf('pending') + 1;
-          return `<div class="status-step ${done ? 'done' : ''}"><div class="status-dot"></div><div class="status-step-label">${step.replace('_',' ')}</div></div>`;
-        }).join('')}
-        <div class="status-step ${['cancelled','refunded'].includes(o.status) ? 'current' : ''}"><div class="status-dot"></div><div class="status-step-label">${o.status}</div></div>
-      </div>`;
-    } else if (currentIndex >= 0) {
-      progressHtml = `<div class="order-status-bar">
-        ${steps.map((step, i) => {
-          const done = i < currentIndex;
-          const current = i === currentIndex;
-          return `<div class="status-step ${done ? 'done' : ''} ${current ? 'current' : ''}"><div class="status-dot"></div><div class="status-step-label">${step.replace('_',' ')}</div></div>`;
-        }).join('')}
-      </div>`;
-    }
-
-    const nextStatuses = VALID_NEXT_STATUS[o.status] || [];
-    const statusButtons = nextStatuses.length
-      ? nextStatuses.map(ns => `<button class="btn-primary btn-sm" onclick="updateOrderStatus('${ns}')">${ns.replace('_',' ')} →</button>`).join(' ')
-      : '<span style="color:#64748b;font-size:13px">No further actions available</span>';
-
-    const agentInfo = o.agent ? `<tr><th>Agent</th><td>${o.agent.code} — ${o.agent.name}</td></tr>` : '';
+    const agentInfo = o.agent ? `<tr><th>Agent</th><td>${o.agent.code} – ${o.agent.name}</td></tr>` : '';
     const paidInfo = o.paid_at ? `<tr><th>Paid At</th><td>${new Date(o.paid_at).toLocaleString('en-MY')}</td></tr>` : '';
     const deliveredInfo = o.delivered_at ? `<tr><th>Delivered At</th><td>${new Date(o.delivered_at).toLocaleString('en-MY')}</td></tr>` : '';
+    const customVehicleDetails = o.custom_vehicle_details && typeof o.custom_vehicle_details === 'object'
+      ? o.custom_vehicle_details
+      : null;
+    const customVehicleRows = customVehicleDetails
+      ? [
+          ['Brand', customVehicleDetails.brand],
+          ['Model', customVehicleDetails.model],
+          ['Year', customVehicleDetails.year],
+          ['Color', customVehicleDetails.color],
+          ['Steering', customVehicleDetails.steering],
+          ['Repaired', customVehicleDetails.repaired],
+          ['Transmission', customVehicleDetails.transmission],
+          ['CC', customVehicleDetails.cc],
+          ['Drive', customVehicleDetails.drive],
+          ['Fuel', customVehicleDetails.fuel],
+          ['Mileage', customVehicleDetails.mileage]
+        ].filter(([, v]) => typeof v === 'string' && v.trim())
+      : [];
+    const customVehicleHtml = customVehicleRows.length
+      ? `<div style="margin-top:12px"><div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px">Custom Vehicle Specs</div><table class="detail-table">${customVehicleRows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table></div>`
+      : '';
     const orderImages = Array.isArray(o.images) ? o.images : [];
     const imagesHtml = orderImages.length
       ? `<div style="margin-top:14px"><div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase">Order Images</div><div class="uploaded-images">${orderImages.map((img, idx) => `<a href="${img}" target="_blank" rel="noopener noreferrer" class="uploaded-image" title="Image ${idx + 1}"><img src="${img}" alt="Order Image ${idx + 1}" /></a>`).join('')}</div></div>`
@@ -1231,6 +1423,7 @@ async function viewOrder(orderId) {
             <tr><th>Delivery Address</th><td>${o.delivery_address || '-'}</td></tr>
             <tr><th>Notes</th><td>${o.notes || '-'}</td></tr>
           </table>
+          ${customVehicleHtml}
         </div>
         <div>
           <table class="detail-table">
@@ -1246,10 +1439,14 @@ async function viewOrder(orderId) {
         </div>
       </div>
       ${imagesHtml}
-      ${progressHtml ? `<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light)">${progressHtml}</div>` : ''}
-      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-light);display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <span style="font-size:13px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">Actions:</span>
-        ${statusButtons}
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border-light)">
+        <div style="font-size:13px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Order Status Steps (Manual)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          ${statusStepsHtml}
+        </div>
+        <div style="margin-top:12px;display:flex;justify-content:flex-end">
+          <button type="button" class="btn-primary" onclick="saveOrderStatusSteps()">Save</button>
+        </div>
       </div>
       <p id="orderStatusMsg" class="form-msg" style="margin-top:8px"></p>
     `;
@@ -1261,16 +1458,41 @@ async function viewOrder(orderId) {
   }
 }
 
-async function updateOrderStatus(newStatus) {
+async function saveOrderStatusSteps() {
   if (!S.selectedOrderId) return;
+  const payloadSteps = {};
+  for (let i = 1; i <= 6; i += 1) {
+    const key = `step${i}`;
+    const input = document.getElementById(`orderStatusStep${i}`);
+    const value = input?.value?.trim() || '';
+    if (value.length > 200) {
+      const statusEl = byId('orderStatusMsg');
+      if (statusEl) {
+        statusEl.textContent = `Step${i} must be 200 characters or less.`;
+        statusEl.className = 'form-msg error';
+      }
+      return;
+    }
+    payloadSteps[key] = value;
+  }
+  let activeStep = '';
+  for (let i = 1; i <= 6; i += 1) {
+    if (document.getElementById(`orderStatusStepCheck${i}`)?.checked) {
+      activeStep = `step${i}`;
+      break;
+    }
+  }
+  payloadSteps.active_step = activeStep;
+
   try {
-    await api(`/api/orders/${S.selectedOrderId}/status`, {
-      method: 'PUT', body: JSON.stringify({ status: newStatus })
+    await api(`/api/orders/${S.selectedOrderId}/status-steps`, {
+      method: 'PUT',
+      body: JSON.stringify({ status_steps: payloadSteps })
     });
-    msg(`Order status updated to '${newStatus}'.`);
+    msg('Order step status saved.');
     const statusEl = byId('orderStatusMsg');
     if (statusEl) {
-      statusEl.textContent = `Status changed to '${newStatus}'.`;
+      statusEl.textContent = 'Order step status saved successfully.';
       statusEl.className = 'form-msg';
     }
     await viewOrder(S.selectedOrderId);
@@ -1422,6 +1644,8 @@ document.querySelectorAll('.nav-item').forEach(el => {
 // ─── Event: Toggle Auction ─────────────────────────────────────────────────────
 document.getElementById('toggleAuctionBtn')?.addEventListener('click', () => toggleAuction('toggleAuctionBtn'));
 document.getElementById('settingsToggleBtn')?.addEventListener('click', () => toggleAuction('settingsToggleBtn'));
+document.getElementById('emailProvider')?.addEventListener('change', refreshEmailProviderUi);
+refreshEmailProviderUi();
 
 // ─── Event: SMTP Form ─────────────────────────────────────────────────────────
 document.getElementById('smtpForm').addEventListener('submit', async (e) => {
@@ -1429,17 +1653,21 @@ document.getElementById('smtpForm').addEventListener('submit', async (e) => {
   const btn = document.getElementById('smtpSaveBtn');
   btn.disabled = true;
   try {
+    const provider = (document.getElementById('emailProvider').value || 'smtp').trim().toLowerCase();
     const payload = {
+      email_provider: provider,
       smtp_host: document.getElementById('smtpHost').value.trim(),
       smtp_port: document.getElementById('smtpPort').value.trim(),
       smtp_secure: document.getElementById('smtpSecure').value,
       smtp_user: document.getElementById('smtpUser').value.trim(),
       smtp_pass: document.getElementById('smtpPass').value,
       smtp_from: document.getElementById('smtpFrom').value.trim(),
+      resend_api_key: document.getElementById('resendApiKey').value.trim(),
+      resend_from: document.getElementById('resendFrom').value.trim(),
       app_url: document.getElementById('smtpAppUrl').value.trim(),
     };
     await api('/api/settings/smtp', { method: 'PUT', body: JSON.stringify(payload) });
-    document.getElementById('smtpMsg').textContent = 'SMTP settings saved.';
+    document.getElementById('smtpMsg').textContent = `Email settings saved (${provider}).`;
     document.getElementById('smtpMsg').className = 'form-msg';
   } catch (e) {
     document.getElementById('smtpMsg').textContent = e.message;
@@ -1524,8 +1752,21 @@ document.getElementById('auctionForm').addEventListener('submit', submitAuction)
 
 // ─── Event: Order Form ─────────────────────────────────────────────────────────
 document.getElementById('createOrderForm').addEventListener('submit', submitOrder);
-document.getElementById('orderCarId')?.addEventListener('change', updateOrderCustomInputs);
+document.getElementById('orderCarId')?.addEventListener('change', () => updateOrderCustomInputs({ openEditor: true }));
 document.getElementById('orderTypeSelect')?.addEventListener('change', updateOrderCustomInputs);
+for (let i = 1; i <= 6; i += 1) {
+  document.getElementById(`createOrderStatusStepCheck${i}`)?.addEventListener('change', (e) => {
+    if (e.target.checked) enforceSingleCreateStepCheck(i);
+  });
+}
+document.getElementById('orderEditCustomVehicleBtn')?.addEventListener('click', openCustomVehicleModal);
+document.getElementById('orderClearCustomVehicleBtn')?.addEventListener('click', clearCustomVehicleDetails);
+document.getElementById('saveCustomVehicleBtn')?.addEventListener('click', saveCustomVehicleDetails);
+document.getElementById('cancelCustomVehicleBtn')?.addEventListener('click', closeCustomVehicleModal);
+document.getElementById('closeCustomVehicleModalBtn')?.addEventListener('click', closeCustomVehicleModal);
+document.getElementById('customVehicleModal')?.addEventListener('click', (e) => {
+  if (e.target?.id === 'customVehicleModal') closeCustomVehicleModal();
+});
 
 // ─── Event: Agent Form ─────────────────────────────────────────────────────────
 document.getElementById('agentForm').addEventListener('submit', submitAgent);

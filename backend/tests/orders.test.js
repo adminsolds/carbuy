@@ -110,6 +110,91 @@ describe('Orders API', () => {
         .send({ car_id: testCar.id, order_type: 'purchase', amount: 130000, buyer_name: 'Buyer' });
       expect(res.status).toBe(403);
     });
+
+    it('should create custom-vehicle order with detailed specs', async () => {
+      const res = await request(app)
+        .post('/api/orders/admin')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          order_type: 'custom',
+          custom_order_type: 'booking',
+          custom_vehicle_details: {
+            brand: 'Toyota',
+            model: 'Harrier',
+            year: '2021',
+            color: 'White',
+            steering: 'Right',
+            repaired: 'No',
+            transmission: 'AT',
+            cc: '2000',
+            drive: '2WD',
+            fuel: 'Petrol',
+            mileage: '35000'
+          },
+          status_steps: {
+            step1: 'Booking confirmed',
+            step2: 'Loan submission in progress',
+            step3: '',
+            step4: '',
+            step5: '',
+            step6: '',
+            active_step: 'step2'
+          },
+          amount: 145000,
+          buyer_name: 'Custom Vehicle Buyer'
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.order.custom_vehicle_details).toBeTruthy();
+      expect(res.body.order.custom_vehicle_details.brand).toBe('Toyota');
+      expect(res.body.order.vehicle_label).toMatch(/Toyota/i);
+      expect(res.body.order.status_steps.step1).toBe('Booking confirmed');
+      expect(res.body.order.status_steps.step2).toBe('Loan submission in progress');
+      expect(res.body.order.status_steps.active_step).toBe('step2');
+      expect(res.body.order.status).toBe('deposit_paid');
+    });
+
+    it('should accept status_steps as JSON string payload', async () => {
+      const testCar = await createAvailableCar();
+      const res = await request(app)
+        .post('/api/orders/admin')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          car_id: testCar.id,
+          order_type: 'purchase',
+          amount: 132000,
+          buyer_name: 'String Step Buyer',
+          status_steps: JSON.stringify({
+            step1: 'Booked',
+            step2: 'Deposit received',
+            step3: '',
+            step4: '',
+            step5: '',
+            step6: '',
+            active_step: 'step2'
+          })
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.order.status_steps.step2).toBe('Deposit received');
+      expect(res.body.order.status_steps.active_step).toBe('step2');
+      expect(res.body.order.status).toBe('deposit_paid');
+    });
+
+    it('should map legacy status field to step status when status_steps is missing', async () => {
+      const testCar = await createAvailableCar();
+      const res = await request(app)
+        .post('/api/orders/admin')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          car_id: testCar.id,
+          order_type: 'purchase',
+          amount: 133000,
+          buyer_name: 'Legacy Status Buyer',
+          status: 'paid'
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.order.status_steps.active_step).toBe('step3');
+      expect(res.body.order.status).toBe('paid');
+    });
   });
 
   describe('GET /api/orders/admin/list', () => {
@@ -196,6 +281,53 @@ describe('Orders API', () => {
       expect(matched.user).toBeTruthy();
       expect(matched.user.email).toBe('buyer@test.com');
     });
+
+    it('should return order by order number without account', async () => {
+      const testCar = await createAvailableCar();
+      const createRes = await request(app)
+        .post('/api/orders/admin')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          car_id: testCar.id,
+          order_type: 'purchase',
+          amount: 99000,
+          buyer_name: 'OrderNo Buyer'
+        });
+      expect(createRes.status).toBe(201);
+      const orderNo = createRes.body.order.order_no;
+
+      const lookupRes = await request(app)
+        .get('/api/orders/lookup')
+        .query({ order_no: orderNo });
+
+      expect(lookupRes.status).toBe(200);
+      expect(Array.isArray(lookupRes.body.orders)).toBe(true);
+      expect(lookupRes.body.orders.length).toBeGreaterThan(0);
+      expect(lookupRes.body.orders[0].order_no).toBe(orderNo);
+    });
+
+    it('should still return order when order number is correct but account is wrong', async () => {
+      const testCar = await createAvailableCar();
+      const createRes = await request(app)
+        .post('/api/orders/admin')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          car_id: testCar.id,
+          order_type: 'purchase',
+          amount: 102000,
+          buyer_name: 'Mixed Lookup Buyer'
+        });
+      expect(createRes.status).toBe(201);
+      const orderNo = createRes.body.order.order_no;
+
+      const lookupRes = await request(app)
+        .get('/api/orders/lookup')
+        .query({ account: 'not-found-account', order_no: orderNo });
+
+      expect(lookupRes.status).toBe(200);
+      const matched = (lookupRes.body.orders || []).find((o) => o.order_no === orderNo);
+      expect(matched).toBeTruthy();
+    });
   });
 
   describe('GET /api/orders/admin/stats', () => {
@@ -235,6 +367,69 @@ describe('Orders API', () => {
       expect(res.status).toBe(200);
       expect(res.body.order.buyer_name).toBe('Updated Buyer');
       expect(res.body.order.deposit_paid).toBe(30000);
+    });
+  });
+
+  describe('PUT /api/orders/:id/status-steps', () => {
+    it('should save manual step status text', async () => {
+      const testCar = await createAvailableCar();
+      const createRes = await request(app)
+        .post('/api/orders/admin')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          car_id: testCar.id,
+          order_type: 'purchase',
+          amount: 130000,
+          buyer_name: 'Step Status Buyer'
+        });
+      const order = createRes.body.order;
+
+      const res = await request(app)
+        .put(`/api/orders/${order.id}/status-steps`)
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          status_steps: {
+            step1: 'Order received',
+            step2: 'Preparing paperwork',
+            step3: 'Payment confirmed',
+            step4: '',
+            step5: '',
+            step6: '',
+            active_step: 'step3'
+          }
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.order.status_steps.step1).toBe('Order received');
+      expect(res.body.order.status_steps.step3).toBe('Payment confirmed');
+      expect(res.body.order.status_steps.active_step).toBe('step3');
+      expect(res.body.order.status).toBe('paid');
+    });
+
+    it('should reject step text longer than 200 chars', async () => {
+      const testCar = await createAvailableCar();
+      const createRes = await request(app)
+        .post('/api/orders/admin')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          car_id: testCar.id,
+          order_type: 'purchase',
+          amount: 130000,
+          buyer_name: 'Long Step Buyer'
+        });
+      const order = createRes.body.order;
+      const longText = 'x'.repeat(201);
+
+      const res = await request(app)
+        .put(`/api/orders/${order.id}/status-steps`)
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          status_steps: {
+            step1: longText
+          }
+        });
+
+      expect(res.status).toBe(400);
     });
   });
 

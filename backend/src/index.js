@@ -109,6 +109,14 @@ async function ensureOrderEnhancementColumns() {
     console.log('Database migration: added orders.custom_vehicle');
   }
 
+  if (!table.custom_vehicle_details) {
+    await queryInterface.addColumn('orders', 'custom_vehicle_details', {
+      type: DataTypes.JSON,
+      allowNull: true
+    });
+    console.log('Database migration: added orders.custom_vehicle_details');
+  }
+
   if (!table.images) {
     await queryInterface.addColumn('orders', 'images', {
       type: DataTypes.JSON,
@@ -116,6 +124,14 @@ async function ensureOrderEnhancementColumns() {
       defaultValue: []
     });
     console.log('Database migration: added orders.images');
+  }
+
+  if (!table.status_steps) {
+    await queryInterface.addColumn('orders', 'status_steps', {
+      type: DataTypes.JSON,
+      allowNull: true
+    });
+    console.log('Database migration: added orders.status_steps');
   }
 
   try {

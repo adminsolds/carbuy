@@ -3,14 +3,14 @@ const { AppSetting } = require('../models');
 
 let _transporter = null;
 
+const getSetting = async (key, fallback) => {
+  const row = await AppSetting.findOne({ where: { key } });
+  return row ? row.value : fallback;
+};
+
 // Build transporter from DB settings (cached)
 const getTransporter = async () => {
   if (_transporter) return _transporter;
-
-  const getSetting = async (key, fallback) => {
-    const row = await AppSetting.findOne({ where: { key } });
-    return row ? row.value : fallback;
-  };
 
   const host = await getSetting('smtp_host', 'smtp.example.com');
   const port = parseInt(await getSetting('smtp_port', '587'), 10);
@@ -27,7 +27,7 @@ const invalidateTransporter = () => { _transporter = null; };
 
 const APP_NAME = 'SG Auto Trading';
 
-const sendPasswordResetEmail = async (toEmail, resetToken) => {
+const buildResetEmailContent = async (resetToken) => {
   const row = await AppSetting.findOne({ where: { key: 'app_url' } });
   const appUrl = row ? row.value : 'http://localhost:5173';
   const resetUrl = `${appUrl}/reset-password?token=${resetToken}`;
@@ -62,19 +62,73 @@ const sendPasswordResetEmail = async (toEmail, resetToken) => {
     </div>
   `;
 
+  return {
+    subject: '[SG Auto Trading] Password Reset Request',
+    html: htmlContent
+  };
+};
+
+const sendEmailViaSmtp = async ({ toEmail, subject, html }) => {
   const transporter = await getTransporter();
   const fromAddress = (await AppSetting.findOne({ where: { key: 'smtp_from' } }))?.value || 'noreply@sgautotrading.local';
+  await transporter.sendMail({
+    from: `"SG Auto Trading" <${fromAddress}>`,
+    to: toEmail,
+    subject,
+    html
+  });
+};
+
+const sendEmailViaResend = async ({ toEmail, subject, html }) => {
+  const apiKey = await getSetting('resend_api_key', '');
+  if (!apiKey) {
+    throw new Error('Resend API key is not configured.');
+  }
+
+  const fromAddress = await getSetting('resend_from', '') || await getSetting('smtp_from', '') || 'noreply@sgautotrading.local';
+  if (!fromAddress) {
+    throw new Error('Resend sender email is not configured.');
+  }
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      from: `"${APP_NAME}" <${fromAddress}>`,
+      to: [toEmail],
+      subject,
+      html
+    })
+  });
+
+  if (!response.ok) {
+    let details = '';
+    try {
+      const payload = await response.json();
+      details = payload?.message || payload?.error || JSON.stringify(payload);
+    } catch {
+      details = await response.text();
+    }
+    throw new Error(`Resend send failed (${response.status}): ${details || 'unknown error'}`);
+  }
+};
+
+const sendPasswordResetEmail = async (toEmail, resetToken) => {
+  const provider = String(await getSetting('email_provider', 'smtp')).trim().toLowerCase() || 'smtp';
+  const { subject, html } = await buildResetEmailContent(resetToken);
 
   try {
-    await transporter.sendMail({
-      from: `"SG Auto Trading" <${fromAddress}>`,
-      to: toEmail,
-      subject: '[SG Auto Trading] Password Reset Request',
-      html: htmlContent
-    });
-    console.log(`Password reset email sent to ${toEmail}`);
+    if (provider === 'resend') {
+      await sendEmailViaResend({ toEmail, subject, html });
+    } else {
+      await sendEmailViaSmtp({ toEmail, subject, html });
+    }
+    console.log(`Password reset email sent to ${toEmail} via ${provider}`);
   } catch (error) {
-    console.error('Failed to send password reset email:', error.message);
+    console.error(`Failed to send password reset email via ${provider}:`, error.message);
     throw error;
   }
 };

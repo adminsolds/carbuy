@@ -491,7 +491,13 @@
                       <option value="">-- Select Vehicle --</option>
                       <option value="custom">Custom Vehicle (Manual Input)</option>
                     </select>
-                    <input id="orderCustomVehicle" type="text" class="hidden" placeholder="Enter custom vehicle/product name" style="margin-top:8px" />
+                    <div id="orderCustomVehicleBlock" class="hidden" style="margin-top:8px">
+                      <input id="orderCustomVehicle" type="text" readonly placeholder="Custom vehicle summary will appear here" />
+                      <div class="form-actions" style="margin-top:8px">
+                        <button type="button" class="btn-secondary btn-sm" id="orderEditCustomVehicleBtn">Edit Custom Vehicle</button>
+                        <button type="button" class="btn-secondary btn-sm" id="orderClearCustomVehicleBtn">Clear</button>
+                      </div>
+                    </div>
                   </div>
                   <div class="form-group">
                     <label>Order Type *</label>
@@ -525,20 +531,55 @@
                     </select>
                   </div>
                   <div class="form-group">
-                    <label>Initial Status</label>
-                    <select id="orderInitialStatus">
-                      <option value="pending">Pending</option>
-                      <option value="deposit_paid">Deposit Paid</option>
-                      <option value="paid">Paid</option>
-                      <option value="processing">Processing</option>
-                      <option value="shipped">Shipped</option>
-                      <option value="delivered">Delivered</option>
-                      <option value="completed">Completed</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
                     <label>Deposit Paid (RM)</label>
                     <input id="orderDepositPaid" type="number" placeholder="0" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Order Status Steps (Initial)</label>
+                  <div class="form-grid-3">
+                    <div class="form-group">
+                      <label style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                        <span>Step1</span>
+                        <span><input type="checkbox" id="createOrderStatusStepCheck1" data-create-step-check="1" /> Current</span>
+                      </label>
+                      <textarea id="createOrderStatusStep1" rows="2" maxlength="200" placeholder="Step1 status (max 200 chars)"></textarea>
+                    </div>
+                    <div class="form-group">
+                      <label style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                        <span>Step2</span>
+                        <span><input type="checkbox" id="createOrderStatusStepCheck2" data-create-step-check="2" /> Current</span>
+                      </label>
+                      <textarea id="createOrderStatusStep2" rows="2" maxlength="200" placeholder="Step2 status (max 200 chars)"></textarea>
+                    </div>
+                    <div class="form-group">
+                      <label style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                        <span>Step3</span>
+                        <span><input type="checkbox" id="createOrderStatusStepCheck3" data-create-step-check="3" /> Current</span>
+                      </label>
+                      <textarea id="createOrderStatusStep3" rows="2" maxlength="200" placeholder="Step3 status (max 200 chars)"></textarea>
+                    </div>
+                    <div class="form-group">
+                      <label style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                        <span>Step4</span>
+                        <span><input type="checkbox" id="createOrderStatusStepCheck4" data-create-step-check="4" /> Current</span>
+                      </label>
+                      <textarea id="createOrderStatusStep4" rows="2" maxlength="200" placeholder="Step4 status (max 200 chars)"></textarea>
+                    </div>
+                    <div class="form-group">
+                      <label style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                        <span>Step5</span>
+                        <span><input type="checkbox" id="createOrderStatusStepCheck5" data-create-step-check="5" /> Current</span>
+                      </label>
+                      <textarea id="createOrderStatusStep5" rows="2" maxlength="200" placeholder="Step5 status (max 200 chars)"></textarea>
+                    </div>
+                    <div class="form-group">
+                      <label style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                        <span>Step6</span>
+                        <span><input type="checkbox" id="createOrderStatusStepCheck6" data-create-step-check="6" /> Current</span>
+                      </label>
+                      <textarea id="createOrderStatusStep6" rows="2" maxlength="200" placeholder="Step6 status (max 200 chars)"></textarea>
+                    </div>
                   </div>
                 </div>
                 <div class="form-group">
@@ -573,6 +614,68 @@
                 </div>
                 <p id="orderFormMsg" class="form-msg"></p>
               </form>
+            </div>
+          </div>
+
+          <div id="customVehicleModal" class="modal-overlay hidden">
+            <div class="modal-card">
+              <div class="card-header">
+                <h3>Custom Vehicle Details</h3>
+                <button type="button" class="btn-icon" id="closeCustomVehicleModalBtn">✕</button>
+              </div>
+              <div class="card-body">
+                <div class="form-grid-3">
+                  <div class="form-group">
+                    <label>Brand</label>
+                    <input id="cvBrand" type="text" placeholder="Brand" maxlength="80" />
+                  </div>
+                  <div class="form-group">
+                    <label>Model</label>
+                    <input id="cvModel" type="text" placeholder="Model" maxlength="80" />
+                  </div>
+                  <div class="form-group">
+                    <label>Year</label>
+                    <input id="cvYear" type="text" placeholder="Year" maxlength="20" />
+                  </div>
+                  <div class="form-group">
+                    <label>Color</label>
+                    <input id="cvColor" type="text" placeholder="Color" maxlength="40" />
+                  </div>
+                  <div class="form-group">
+                    <label>Steering</label>
+                    <input id="cvSteering" type="text" placeholder="Steering" maxlength="40" />
+                  </div>
+                  <div class="form-group">
+                    <label>Repaired</label>
+                    <input id="cvRepaired" type="text" placeholder="Repaired History" maxlength="80" />
+                  </div>
+                  <div class="form-group">
+                    <label>Transmission</label>
+                    <input id="cvTransmission" type="text" placeholder="Transmission" maxlength="40" />
+                  </div>
+                  <div class="form-group">
+                    <label>CC</label>
+                    <input id="cvCc" type="text" placeholder="CC" maxlength="20" />
+                  </div>
+                  <div class="form-group">
+                    <label>Drive</label>
+                    <input id="cvDrive" type="text" placeholder="Drive" maxlength="40" />
+                  </div>
+                  <div class="form-group">
+                    <label>Fuel</label>
+                    <input id="cvFuel" type="text" placeholder="Fuel" maxlength="40" />
+                  </div>
+                  <div class="form-group">
+                    <label>Mileage</label>
+                    <input id="cvMileage" type="text" placeholder="Mileage" maxlength="40" />
+                  </div>
+                </div>
+                <p id="customVehicleModalMsg" class="form-msg"></p>
+                <div class="form-actions">
+                  <button type="button" class="btn-primary" id="saveCustomVehicleBtn">Save Custom Vehicle</button>
+                  <button type="button" class="btn-secondary" id="cancelCustomVehicleBtn">Cancel</button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -692,10 +795,24 @@
           </div>
 
           <div class="card">
-            <div class="card-header"><h3>Email (SMTP)</h3></div>
+            <div class="card-header"><h3>Email Delivery (SMTP / Resend)</h3></div>
             <div class="card-body">
               <form id="smtpForm">
                 <div class="form-grid-2">
+                  <div class="form-group">
+                    <label>Email Provider</label>
+                    <select id="emailProvider">
+                      <option value="smtp">SMTP</option>
+                      <option value="resend">Resend</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>App URL (for email links)</label>
+                    <input type="url" id="smtpAppUrl" placeholder="http://localhost:5173" />
+                  </div>
+                </div>
+
+                <div id="smtpFields" class="form-grid-2">
                   <div class="form-group">
                     <label>SMTP Host</label>
                     <input type="text" id="smtpHost" placeholder="smtp.example.com" />
@@ -716,20 +833,26 @@
                     <label>From Address</label>
                     <input type="email" id="smtpFrom" placeholder="noreply@example.com" />
                   </div>
-                  <div class="form-group">
-                    <label>App URL (for email links)</label>
-                    <input type="url" id="smtpAppUrl" placeholder="http://localhost:5173" />
-                  </div>
                 </div>
-                <div class="form-group">
+                <div id="smtpSecureWrap" class="form-group">
                   <label>Use SSL / TLS</label>
                   <select id="smtpSecure">
                     <option value="false">No (STARTTLS on port 587)</option>
                     <option value="true">Yes (SSL on port 465)</option>
                   </select>
                 </div>
+                <div id="resendFields" class="form-grid-2 hidden">
+                  <div class="form-group">
+                    <label>Resend API Key</label>
+                    <input type="password" id="resendApiKey" placeholder="re_********" />
+                  </div>
+                  <div class="form-group">
+                    <label>Resend From Address</label>
+                    <input type="email" id="resendFrom" placeholder="noreply@yourdomain.com" />
+                  </div>
+                </div>
                 <div class="form-actions" style="margin-top:12px">
-                  <button type="submit" class="btn-primary" id="smtpSaveBtn">Save SMTP Settings</button>
+                  <button type="submit" class="btn-primary" id="smtpSaveBtn">Save Email Settings</button>
                   <button type="button" class="btn-secondary" id="smtpTestBtn">Send Test Email</button>
                   <span id="smtpMsg" class="form-msg" style="margin-left:12px"></span>
                 </div>

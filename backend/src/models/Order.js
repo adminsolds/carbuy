@@ -54,6 +54,11 @@ const Order = sequelize.define('Order', {
     allowNull: true,
     field: 'custom_vehicle'
   },
+  custom_vehicle_details: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    field: 'custom_vehicle_details'
+  },
   images: {
     type: DataTypes.JSON,
     allowNull: false,
@@ -84,6 +89,12 @@ const Order = sequelize.define('Order', {
       'refunded'
     ),
     defaultValue: 'pending'
+  },
+  // Manual status flow shown as 6 editable steps in admin
+  status_steps: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    field: 'status_steps'
   },
   // Buyer info snapshot
   buyer_name: {
