@@ -3,12 +3,14 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { Op } = require('sequelize');
 const { User } = require('../models');
-const { sendPasswordResetEmail } = require('../services/emailService');
+const { sendPasswordResetEmail, sendVerificationCodeEmail } = require('../services/emailService');
 require('dotenv').config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_change_me';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
+const EMAIL_CODE_TTL_MINUTES = 10;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const isValidPassword = (password) => {
@@ -17,6 +19,14 @@ const isValidPassword = (password) => {
 };
 
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
+const buildVerificationCode = () => String(Math.floor(100000 + Math.random() * 900000));
+const buildVerificationExpiry = () => new Date(Date.now() + EMAIL_CODE_TTL_MINUTES * 60 * 1000);
+const issueToken = (user) => jwt.sign(
+  { id: user.id, email: user.email, name: user.name, role: user.role },
+  JWT_SECRET,
+  { expiresIn: JWT_EXPIRES_IN }
+);
 
 // Fields that can be set during registration
 const PROFILE_FIELDS = [
@@ -75,19 +85,25 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    const existingUser = await User.findOne({ where: { email: email.toLowerCase() } });
+    const normalizedEmail = normalizeEmail(email);
+    const existingUser = await User.findOne({ where: { email: normalizedEmail } });
     if (existingUser) {
       return res.status(400).json({ error: 'Email already registered.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const verificationCode = buildVerificationCode();
+    const verificationExpiry = buildVerificationExpiry();
 
     const user = await User.create({
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       password: hashedPassword,
       name: name.trim(),
       phone: phone?.trim() || null,
       role: 'buyer',
+      email_verified: false,
+      email_verification_code: verificationCode,
+      email_verification_expires: verificationExpiry,
       ic_passport: ic_passport?.trim() || null,
       gender: gender || null,
       company_name: company_name?.trim() || null,
@@ -100,20 +116,104 @@ router.post('/register', async (req, res) => {
       address_country: address_country?.trim() || null,
     });
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email, name: user.name, role: user.role },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
+    try {
+      await sendVerificationCodeEmail(user.email, verificationCode);
+    } catch (mailError) {
+      await user.destroy();
+      return res.status(500).json({ error: 'Failed to send verification code. Please try again.' });
+    }
 
     res.status(201).json({
-      message: 'User registered successfully.',
-      token,
-      user: serializeUser(user)
+      message: 'Registration successful. Verification code has been sent to your email.',
+      verification_required: true,
+      email: user.email
     });
   } catch (error) {
     console.error('Register error:', error);
     res.status(500).json({ error: 'Registration failed.' });
+  }
+});
+
+// ─── POST /api/auth/verify-email-code ─────────────────────────────────────────
+router.post('/verify-email-code', async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    const code = String(req.body?.code || '').trim();
+
+    if (!email || !code) {
+      return res.status(400).json({ error: 'Email and verification code are required.' });
+    }
+
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid email or verification code.' });
+    }
+
+    if (user.email_verified) {
+      const token = issueToken(user);
+      return res.json({
+        message: 'Email already verified.',
+        token,
+        user: serializeUser(user)
+      });
+    }
+
+    const expectedCode = String(user.email_verification_code || '').trim();
+    if (!expectedCode || expectedCode !== code) {
+      return res.status(400).json({ error: 'Invalid email or verification code.' });
+    }
+    if (!user.email_verification_expires || new Date(user.email_verification_expires) < new Date()) {
+      return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
+    }
+
+    await user.update({
+      email_verified: true,
+      email_verification_code: null,
+      email_verification_expires: null
+    });
+
+    const token = issueToken(user);
+    return res.json({
+      message: 'Email verified successfully.',
+      token,
+      user: serializeUser(user)
+    });
+  } catch (error) {
+    console.error('Verify email code error:', error);
+    res.status(500).json({ error: 'Failed to verify email code.' });
+  }
+});
+
+// ─── POST /api/auth/resend-verification-code ──────────────────────────────────
+router.post('/resend-verification-code', async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required.' });
+    }
+
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.json({ message: 'If the email exists, a verification code has been sent.' });
+    }
+
+    if (user.email_verified) {
+      return res.json({ message: 'Email already verified.' });
+    }
+
+    const verificationCode = buildVerificationCode();
+    const verificationExpiry = buildVerificationExpiry();
+
+    await user.update({
+      email_verification_code: verificationCode,
+      email_verification_expires: verificationExpiry
+    });
+
+    await sendVerificationCodeEmail(user.email, verificationCode);
+    return res.json({ message: 'Verification code sent. Please check your email.' });
+  } catch (error) {
+    console.error('Resend verification code error:', error);
+    res.status(500).json({ error: 'Failed to resend verification code.' });
   }
 });
 
@@ -126,7 +226,8 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required.' });
     }
 
-    const user = await User.findOne({ where: { email: email.toLowerCase() } });
+    const normalizedEmail = normalizeEmail(email);
+    const user = await User.findOne({ where: { email: normalizedEmail } });
 
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials.' });
@@ -140,11 +241,15 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email, name: user.name, role: user.role },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
+    if (user.role === 'buyer' && !user.email_verified && user.email_verification_code) {
+      return res.status(403).json({
+        error: 'Email not verified. Please verify your email before login.',
+        verification_required: true,
+        email: user.email
+      });
+    }
+
+    const token = issueToken(user);
 
     res.json({
       message: 'Login successful.',
@@ -167,7 +272,7 @@ router.post('/forgot-password', async (req, res) => {
       return res.status(400).json({ error: 'Email is required.' });
     }
 
-    const user = await User.findOne({ where: { email: email.toLowerCase() } });
+    const user = await User.findOne({ where: { email: normalizeEmail(email) } });
     if (!user) {
       // Return success to prevent email enumeration
       return res.json({ message: 'If the email exists, a password reset link has been sent.' });
@@ -209,7 +314,7 @@ router.post('/reset-password', async (req, res) => {
     const user = await User.findOne({
       where: {
         reset_token: token,
-        reset_token_expires: { [require('sequelize').Op.gt]: new Date() }
+        reset_token_expires: { [Op.gt]: new Date() }
       }
     });
 

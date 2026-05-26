@@ -75,9 +75,9 @@ function Signup() {
         address_country: formData.country.trim() || null,
       };
 
-      await api.post('/auth/register', submitData);
-      setSuccess('Registration successful! Redirecting to login...');
-      setTimeout(() => navigate('/login'), 1500);
+      const response = await api.post('/auth/register', submitData);
+      setSuccess('Registration successful! Verification code sent to your email.');
+      setTimeout(() => navigate('/verify-email', { state: { email: response.data.email || submitData.email } }), 1200);
     } catch (err) {
       setError(getApiErrorMessage(err, 'Registration failed. Please try again.'));
     } finally {

@@ -149,6 +149,27 @@ async function ensureOrderEnhancementColumns() {
   }
 }
 
+async function ensureUserVerificationColumns() {
+  const queryInterface = sequelize.getQueryInterface();
+  const table = await queryInterface.describeTable('users');
+
+  if (!table.email_verification_code) {
+    await queryInterface.addColumn('users', 'email_verification_code', {
+      type: DataTypes.STRING(10),
+      allowNull: true
+    });
+    console.log('Database migration: added users.email_verification_code');
+  }
+
+  if (!table.email_verification_expires) {
+    await queryInterface.addColumn('users', 'email_verification_expires', {
+      type: DataTypes.DATE,
+      allowNull: true
+    });
+    console.log('Database migration: added users.email_verification_expires');
+  }
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -199,6 +220,7 @@ const startServer = async () => {
     await ensureAgentAvatarColumn();
     await ensureAgentAccessColumns();
     await ensureOrderEnhancementColumns();
+    await ensureUserVerificationColumns();
     await ensureSettingsSeeded();
     console.log('App settings initialized.');
 
@@ -289,6 +311,7 @@ const startServer = async () => {
         email: defaultEmail,
         password: hashedPassword,
         role: 'seller',
+        email_verified: true,
       });
       console.log(`Default seller created: ${defaultEmail}`);
     }

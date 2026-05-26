@@ -26,7 +26,8 @@ beforeAll(async () => {
     email: 'seller@test.com',
     password: bcrypt.hashSync('Seller@123456', 10),
     phone: '+60 12-345 6789',
-    role: 'seller'
+    role: 'seller',
+    email_verified: true
   });
 
   await User.create({
@@ -34,7 +35,8 @@ beforeAll(async () => {
     email: 'buyer@test.com',
     password: bcrypt.hashSync('Buyer@123456', 10),
     phone: '+60 11-222 3333',
-    role: 'buyer'
+    role: 'buyer',
+    email_verified: true
   });
 
   // Login seller and buyer to get tokens

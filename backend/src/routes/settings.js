@@ -6,6 +6,10 @@ const { AppSetting } = require('../models');
 const { invalidateTransporter } = require('../services/emailService');
 
 const router = express.Router();
+const getSetting = async (key, fallback = '') => {
+  const row = await AppSetting.findOne({ where: { key } });
+  return row ? row.value : fallback;
+};
 
 router.get('/public', async (req, res) => {
   try {
@@ -119,6 +123,50 @@ router.post('/smtp/test', auth, authorize('seller'), async (req, res) => {
   } catch (error) {
     console.error('Test SMTP email error:', error);
     res.status(500).json({ error: 'Failed to send test email: ' + error.message });
+  }
+});
+
+router.get('/email/logs', auth, authorize('seller'), async (req, res) => {
+  try {
+    const provider = String(await getSetting('email_provider', 'smtp')).trim().toLowerCase() || 'smtp';
+    if (provider !== 'resend') {
+      return res.json({
+        provider,
+        logs: [],
+        message: 'Email logs are only available for Resend provider.'
+      });
+    }
+
+    const apiKey = String(await getSetting('resend_api_key', '')).trim();
+    if (!apiKey) {
+      return res.status(400).json({ error: 'Resend API key is not configured.' });
+    }
+
+    const rawLimit = Number.parseInt(req.query?.limit, 10);
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 50) : 20;
+    const response = await fetch(`https://api.resend.com/emails?limit=${limit}`, {
+      headers: { Authorization: `Bearer ${apiKey}` }
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const details = payload?.message || payload?.error || 'Failed to load email logs from Resend.';
+      return res.status(502).json({ error: details });
+    }
+
+    const logs = Array.isArray(payload?.data) ? payload.data.map((item) => ({
+      id: item.id,
+      to: Array.isArray(item.to) ? item.to.join(', ') : (item.to || ''),
+      from: item.from || '',
+      subject: item.subject || '',
+      last_event: item.last_event || 'unknown',
+      created_at: item.created_at || null
+    })) : [];
+
+    return res.json({ provider, logs });
+  } catch (error) {
+    console.error('Get email logs error:', error);
+    res.status(500).json({ error: 'Failed to fetch email logs.' });
   }
 });
 

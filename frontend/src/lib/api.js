@@ -18,7 +18,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       const path = window.location.pathname;
-      if (path !== '/login' && path !== '/signup' && path !== '/forgot-password') {
+      if (path !== '/login' && path !== '/signup' && path !== '/forgot-password' && path !== '/verify-email') {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
       }

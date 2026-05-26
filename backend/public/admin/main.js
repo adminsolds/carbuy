@@ -461,6 +461,7 @@ async function loadSettings() {
     document.getElementById('resendApiKey').value = smtp.resend_api_key || '';
     document.getElementById('resendFrom').value = smtp.resend_from || '';
     refreshEmailProviderUi();
+    await loadEmailLogs();
   } catch { /* non-critical */ }
 }
 
@@ -469,6 +470,60 @@ function refreshEmailProviderUi() {
   document.getElementById('smtpFields')?.classList.toggle('hidden', provider !== 'smtp');
   document.getElementById('smtpSecureWrap')?.classList.toggle('hidden', provider !== 'smtp');
   document.getElementById('resendFields')?.classList.toggle('hidden', provider !== 'resend');
+  const hint = document.getElementById('emailLogsHint');
+  if (hint) {
+    hint.textContent = provider === 'resend'
+      ? 'Shows recent verification / password reset email status from Resend.'
+      : 'Current provider is SMTP. Provider-side logs are only available when using Resend.';
+  }
+}
+
+function toLocaleDateTime(value) {
+  if (!value) return '-';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString('en-MY', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function renderEmailLogs(logs = []) {
+  const tbody = document.getElementById('emailLogsTable');
+  if (!tbody) return;
+  if (!Array.isArray(logs) || !logs.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b;padding:16px">No logs found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = logs.map((item) => {
+    const eventName = String(item.last_event || 'unknown').toLowerCase();
+    const eventClass = eventName.replace(/\s+/g, '_');
+    return `
+      <tr>
+        <td>${toLocaleDateTime(item.created_at)}</td>
+        <td style="max-width:220px;word-break:break-all">${item.to || '-'}</td>
+        <td style="max-width:260px;word-break:break-word">${item.subject || '-'}</td>
+        <td><span class="email-log-status ${eventClass}">${eventName.replace(/_/g, ' ')}</span></td>
+        <td style="font-family:monospace;font-size:12px">${item.id || '-'}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function loadEmailLogs() {
+  const tbody = document.getElementById('emailLogsTable');
+  if (tbody) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b;padding:16px">Loading logs...</td></tr>';
+  }
+  try {
+    const d = await api('/api/settings/email/logs?limit=20');
+    renderEmailLogs(d.logs || []);
+    if (d.message) {
+      document.getElementById('smtpMsg').textContent = d.message;
+      document.getElementById('smtpMsg').className = 'form-msg';
+    }
+  } catch (e) {
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#dc2626;padding:16px">${e.message || 'Failed to load email logs.'}</td></tr>`;
+    }
+  }
 }
 
 function refreshAuctionUI() {
@@ -1644,7 +1699,13 @@ document.querySelectorAll('.nav-item').forEach(el => {
 // ─── Event: Toggle Auction ─────────────────────────────────────────────────────
 document.getElementById('toggleAuctionBtn')?.addEventListener('click', () => toggleAuction('toggleAuctionBtn'));
 document.getElementById('settingsToggleBtn')?.addEventListener('click', () => toggleAuction('settingsToggleBtn'));
-document.getElementById('emailProvider')?.addEventListener('change', refreshEmailProviderUi);
+document.getElementById('emailProvider')?.addEventListener('change', async () => {
+  refreshEmailProviderUi();
+  await loadEmailLogs();
+});
+document.getElementById('emailLogsRefreshBtn')?.addEventListener('click', async () => {
+  await loadEmailLogs();
+});
 refreshEmailProviderUi();
 
 // ─── Event: SMTP Form ─────────────────────────────────────────────────────────

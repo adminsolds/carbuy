@@ -18,8 +18,8 @@ describe('Auth API', () => {
           phone: '+60 12-111 2222'
         });
       expect(res.status).toBe(201);
-      expect(res.body).toHaveProperty('token');
-      expect(res.body.user).toHaveProperty('email', 'newuser@test.com');
+      expect(res.body).toHaveProperty('verification_required', true);
+      expect(res.body).toHaveProperty('email', 'newuser@test.com');
     });
 
     it('should reject duplicate email', async () => {
@@ -69,6 +69,79 @@ describe('Auth API', () => {
         .post('/api/auth/login')
         .send({ email: 'nobody@test.com', password: 'Test@123456' });
       expect(res.status).toBe(401);
+    });
+
+    it('should require email verification for unverified buyer', async () => {
+      await request(app)
+        .post('/api/auth/register')
+        .send({
+          name: 'Unverified User',
+          email: 'verifyme@test.com',
+          password: 'Test@123456',
+          phone: '+60 12-999 8888'
+        });
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'verifyme@test.com', password: 'Test@123456' });
+      expect(res.status).toBe(403);
+      expect(res.body.verification_required).toBe(true);
+    });
+  });
+
+  describe('POST /api/auth/verify-email-code', () => {
+    it('should verify email code and return login token', async () => {
+      const registerRes = await request(app)
+        .post('/api/auth/register')
+        .send({
+          name: 'Verify User',
+          email: 'verify-code@test.com',
+          password: 'Test@123456',
+          phone: '+60 12-121 2121'
+        });
+      expect(registerRes.status).toBe(201);
+
+      const { User } = require('../src/models');
+      const created = await User.findOne({ where: { email: 'verify-code@test.com' } });
+      expect(created).toBeTruthy();
+      expect(created.email_verification_code).toBeTruthy();
+
+      const verifyRes = await request(app)
+        .post('/api/auth/verify-email-code')
+        .send({
+          email: 'verify-code@test.com',
+          code: created.email_verification_code
+        });
+      expect(verifyRes.status).toBe(200);
+      expect(verifyRes.body).toHaveProperty('token');
+      expect(verifyRes.body.user.email_verified).toBe(true);
+    });
+  });
+
+  describe('POST /api/auth/forgot-password + /reset-password', () => {
+    it('should issue reset token and accept password reset', async () => {
+      const forgotRes = await request(app)
+        .post('/api/auth/forgot-password')
+        .send({ email: 'buyer@test.com' });
+      expect(forgotRes.status).toBe(200);
+
+      const { User } = require('../src/models');
+      const buyer = await User.findOne({ where: { email: 'buyer@test.com' } });
+      expect(buyer.reset_token).toBeTruthy();
+
+      const resetRes = await request(app)
+        .post('/api/auth/reset-password')
+        .send({
+          token: buyer.reset_token,
+          newPassword: 'Buyer@654321'
+        });
+      expect(resetRes.status).toBe(200);
+
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'buyer@test.com', password: 'Buyer@654321' });
+      expect(loginRes.status).toBe(200);
+      expect(loginRes.body).toHaveProperty('token');
     });
   });
 

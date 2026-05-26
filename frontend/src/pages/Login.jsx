@@ -28,6 +28,12 @@ function Login() {
       });
       navigate('/tracking');
     } catch (err) {
+      const verifyRequired = Boolean(err?.response?.data?.verification_required);
+      const verifyEmail = err?.response?.data?.email || formData.email;
+      if (verifyRequired) {
+        navigate('/verify-email', { state: { email: verifyEmail } });
+        return;
+      }
       setError(getApiErrorMessage(err, 'Login failed. Please try again.'));
     } finally {
       setLoading(false);

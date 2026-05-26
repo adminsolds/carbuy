@@ -7,6 +7,7 @@ import CarListing from './pages/CarListing'
 import CarDetail from './pages/CarDetail'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
+import VerifyEmail from './pages/VerifyEmail'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import LoanCalculator from './pages/LoanCalculator'
@@ -36,6 +37,7 @@ function App() {
             <Route path="/cars/:id" element={<CarDetail />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/loan-calculator" element={<LoanCalculator />} />

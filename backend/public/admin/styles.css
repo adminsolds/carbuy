@@ -957,6 +957,40 @@ tbody tr:hover td { background: #f8fafd; }
   color: var(--text-muted);
 }
 
+.email-log-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+
+.email-log-status.sent,
+.email-log-status.delivered {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success-border);
+}
+
+.email-log-status.queued,
+.email-log-status.processing {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fdba74;
+}
+
+.email-log-status.delivery_delayed,
+.email-log-status.bounced,
+.email-log-status.complained,
+.email-log-status.failed {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
+}
+
 .toggle-switch {
   position: relative;
   width: 44px;

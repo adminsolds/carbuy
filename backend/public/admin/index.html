@@ -861,6 +861,32 @@
           </div>
 
           <div class="card">
+            <div class="card-header">
+              <h3>Email Delivery Logs</h3>
+              <button type="button" class="btn-secondary btn-sm" id="emailLogsRefreshBtn">Refresh</button>
+            </div>
+            <div class="card-body">
+              <p id="emailLogsHint" class="setting-desc" style="margin-bottom:10px">Shows recent verification / password reset email status from provider.</p>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>To</th>
+                      <th>Subject</th>
+                      <th>Status</th>
+                      <th>Message ID</th>
+                    </tr>
+                  </thead>
+                  <tbody id="emailLogsTable">
+                    <tr><td colspan="5" style="text-align:center;color:#64748b;padding:16px">No logs loaded yet.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
             <div class="card-header"><h3>Admin Account</h3></div>
             <div class="card-body">
               <div class="info-row">
