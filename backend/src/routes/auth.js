@@ -88,7 +88,28 @@ router.post('/register', async (req, res) => {
     const normalizedEmail = normalizeEmail(email);
     const existingUser = await User.findOne({ where: { email: normalizedEmail } });
     if (existingUser) {
-      return res.status(400).json({ error: 'Email already registered.' });
+      if (existingUser.email_verified) {
+        return res.status(400).json({ error: 'Email already registered.' });
+      }
+
+      const verificationCode = buildVerificationCode();
+      const verificationExpiry = buildVerificationExpiry();
+      await existingUser.update({
+        email_verification_code: verificationCode,
+        email_verification_expires: verificationExpiry
+      });
+
+      try {
+        await sendVerificationCodeEmail(existingUser.email, verificationCode);
+      } catch (mailError) {
+        return res.status(500).json({ error: 'Failed to send verification code. Please try again.' });
+      }
+
+      return res.status(200).json({
+        message: 'This email is already registered but not verified. A new verification code has been sent.',
+        verification_required: true,
+        email: existingUser.email
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);

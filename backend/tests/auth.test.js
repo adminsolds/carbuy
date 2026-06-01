@@ -22,17 +22,41 @@ describe('Auth API', () => {
       expect(res.body).toHaveProperty('email', 'newuser@test.com');
     });
 
-    it('should reject duplicate email', async () => {
+    it('should reject duplicate email when user is already verified', async () => {
       const res = await request(app)
         .post('/api/auth/register')
         .send({
           name: 'Duplicate User',
-          email: 'newuser@test.com',
+          email: 'seller@test.com',
           password: 'Test@123456',
           phone: '+60 12-111 2222'
         });
       expect(res.status).toBe(400);
       expect(res.body.error).toMatch(/exist|already|duplicate/i);
+    });
+
+    it('should resend verification code when duplicate email is unverified', async () => {
+      const first = await request(app)
+        .post('/api/auth/register')
+        .send({
+          name: 'Unverified Duplicate User',
+          email: 'dup-unverified@test.com',
+          password: 'Test@123456',
+          phone: '+60 12-111 9999'
+        });
+      expect(first.status).toBe(201);
+
+      const second = await request(app)
+        .post('/api/auth/register')
+        .send({
+          name: 'Unverified Duplicate User',
+          email: 'dup-unverified@test.com',
+          password: 'Test@123456',
+          phone: '+60 12-111 9999'
+        });
+      expect(second.status).toBe(200);
+      expect(second.body.verification_required).toBe(true);
+      expect(second.body.email).toBe('dup-unverified@test.com');
     });
 
     it('should reject weak password', async () => {
