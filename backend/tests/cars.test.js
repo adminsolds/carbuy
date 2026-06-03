@@ -78,6 +78,22 @@ describe('Cars API', () => {
       expect(res.body.car).toHaveProperty('repaired', 'no');
     });
 
+    it('should default vehicle name to brand when vehicle name is not provided', async () => {
+      const res = await request(app)
+        .post('/api/cars')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          brand: 'Mazda',
+          model: '6',
+          year: 2021,
+          mileage: 32000,
+          price: 88000,
+          status: 'available'
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.car).toHaveProperty('vehicle_name', 'Mazda');
+    });
+
     it('should reject create without auth', async () => {
       const res = await request(app)
         .post('/api/cars')

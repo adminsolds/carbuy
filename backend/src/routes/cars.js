@@ -247,12 +247,14 @@ router.post('/', auth, authorize('seller', 'agent'), agentPermission('add_car'),
     }
 
     const normalizedStatus = ['available', 'auction', 'sold'].includes(status) ? status : 'available';
+    const resolvedBrand = typeof brand === 'string' ? brand.trim() : '';
+    const resolvedVehicleName = vehicle_name?.trim() || resolvedBrand || null;
 
     // Auto-generate chassis number if not provided
     const chassis = chassis_no || `SGAT-${String(Date.now()).slice(-8)}`;
 
     const car = await Car.create({
-      vehicle_name: vehicle_name?.trim() || null,
+      vehicle_name: resolvedVehicleName,
       brand,
       model,
       year: Number(year),
@@ -300,9 +302,13 @@ router.put('/:id', auth, authorize('seller', 'agent'), agentPermission('edit_car
     } = req.body;
 
     const nextStatus = ['available', 'auction', 'sold'].includes(status) ? status : car.status;
+    const resolvedBrand = typeof (brand ?? car.brand) === 'string' ? (brand ?? car.brand).trim() : '';
+    const resolvedVehicleName = vehicle_name !== undefined
+      ? (vehicle_name?.trim() || resolvedBrand || null)
+      : (car.vehicle_name?.trim() || resolvedBrand || null);
 
     await car.update({
-      vehicle_name: vehicle_name !== undefined ? (vehicle_name?.trim() || null) : car.vehicle_name,
+      vehicle_name: resolvedVehicleName,
       brand: brand ?? car.brand,
       model: model ?? car.model,
       year: year !== undefined ? Number(year) : car.year,

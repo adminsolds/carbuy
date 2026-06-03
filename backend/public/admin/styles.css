@@ -1128,6 +1128,36 @@ tbody tr:hover td { background: #f8fafd; }
 .detail-table tr:last-child th,
 .detail-table tr:last-child td { border-bottom: none; }
 
+.vehicle-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.vehicle-detail-item {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.vehicle-detail-label {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.vehicle-detail-value {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
 /* ─── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 1100px) {
   .dashboard-grid { grid-template-columns: 1fr; }
@@ -1144,6 +1174,7 @@ tbody tr:hover td { background: #f8fafd; }
   .main-content { margin-left: 0; }
   .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
   .form-grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .vehicle-detail-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 600px) {

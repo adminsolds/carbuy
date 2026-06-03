@@ -1511,7 +1511,7 @@ async function viewOrder(orderId) {
       ? inventoryVehicleRows
       : [...customVehicleLabelRows, ...customVehicleRows];
     const vehicleDetailsHtml = vehicleDetailRows.length
-      ? `<div style="margin-top:12px"><div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px">Vehicle Details</div><table class="detail-table">${vehicleDetailRows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table></div>`
+      ? `<div style="margin-top:12px"><div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">Vehicle Details</div><div class="vehicle-detail-grid">${vehicleDetailRows.map(([k, v]) => `<div class="vehicle-detail-item"><div class="vehicle-detail-label">${k}</div><div class="vehicle-detail-value">${v}</div></div>`).join('')}</div></div>`
       : '';
     const orderImages = Array.isArray(o.images) ? o.images : [];
     const imagesHtml = orderImages.length

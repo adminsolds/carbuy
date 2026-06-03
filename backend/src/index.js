@@ -177,6 +177,14 @@ async function ensureCarEnhancementColumns() {
     });
     console.log('Database migration: added cars.vehicle_name');
   }
+
+  await sequelize.query(
+    `UPDATE cars
+     SET vehicle_name = brand
+     WHERE brand IS NOT NULL
+       AND TRIM(brand) <> ''
+       AND (vehicle_name IS NULL OR TRIM(vehicle_name) = '')`
+  );
 }
 
 async function ensureUserVerificationColumns() {
