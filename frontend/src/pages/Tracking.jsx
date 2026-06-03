@@ -114,6 +114,9 @@ function Tracking() {
   };
 
   const getOrderBadge = (order) => {
+    if (order?.payment_confirmed === false) {
+      return { class: 'processing', label: order?.status_label || 'Order Processing' };
+    }
     const stepKey = getOrderStepKey(order);
     if (stepKey) {
       const label = ORDER_STEP_LABELS.find((item) => item.key === stepKey)?.label || stepKey;
@@ -127,15 +130,37 @@ function Tracking() {
   };
 
   const getManualStatusSteps = (statusSteps) => {
-    if (!statusSteps || typeof statusSteps !== 'object') return [];
-    const activeStep = typeof statusSteps.active_step === 'string' ? statusSteps.active_step.trim().toLowerCase() : '';
     return ORDER_STEP_LABELS
       .map(({ key, label }) => ({
         label,
-        text: typeof statusSteps[key] === 'string' ? statusSteps[key].trim() : '',
-        isCurrent: activeStep === key
+        text: statusSteps && typeof statusSteps === 'object' && typeof statusSteps[key] === 'string'
+          ? statusSteps[key].trim()
+          : ''
       }))
-      .filter((item) => item.text.length > 0);
+      .filter((item) => item.text);
+  };
+
+  const getOrderPrimaryImage = (order) => {
+    if (Array.isArray(order?.images) && order.images.length > 0) return order.images[0];
+    if (Array.isArray(order?.car?.images) && order.car.images.length > 0) return order.car.images[0];
+    return '';
+  };
+
+  const getVehicleLabel = (order) => {
+    const customVehicleName = typeof order?.custom_vehicle_details?.vehicle_name === 'string'
+      ? order.custom_vehicle_details.vehicle_name.trim()
+      : '';
+    if (customVehicleName) return customVehicleName;
+
+    const inventoryVehicleName = typeof order?.car?.vehicle_name === 'string'
+      ? order.car.vehicle_name.trim()
+      : '';
+    if (inventoryVehicleName) return inventoryVehicleName;
+
+    if (order?.custom_vehicle) return order.custom_vehicle;
+    if (order?.vehicle_label) return order.vehicle_label;
+    if (order?.car) return `${order.car.brand} ${order.car.model}${order.car.year ? ` (${order.car.year})` : ''}`;
+    return 'Vehicle Information Pending';
   };
 
   return (
@@ -202,94 +227,89 @@ function Tracking() {
                   {orders.map((order) => {
                     const badge = getOrderBadge(order);
                     const manualSteps = getManualStatusSteps(order.status_steps);
+                    const showManualSteps = order?.payment_confirmed !== false;
+                    const primaryImage = getOrderPrimaryImage(order);
+                    const infoItems = [
+                      { label: 'Vehicle Name', value: getVehicleLabel(order) },
+                      { label: 'Email', value: order.buyer_email || order.user?.email || '-' },
+                      { label: 'Name', value: order.buyer_name || order.user?.name || '-' },
+                      { label: 'IC / Passport', value: order.user?.ic_passport || '-' },
+                      { label: 'Contact', value: order.buyer_phone || '-' },
+                      { label: 'Agent Name', value: order.agent?.name || '-' },
+                      { label: 'Tracking ID', value: order.order_no || '-' },
+                    ];
+
                     return (
                       <div key={order.id} className="order-card">
-                        <div className="order-header">
-                          <div>
-                            <span className="order-no">{order.order_no}</span>
-                            <span className={`status-badge ${badge.class}`}>{badge.label}</span>
-                            <span className={`order-type-badge ${order.order_type === 'auction_win' ? 'auction' : (order.order_type === 'custom' ? 'custom' : 'purchase')}`}>
-                              {order.order_type === 'auction_win' ? 'Auction Win' : (order.order_type === 'custom' ? (order.custom_order_type || 'Custom') : 'Purchase')}
-                            </span>
-                          </div>
-                          <span className="order-date">
-                            {new Date(order.createdAt).toLocaleDateString('en-MY', { dateStyle: 'medium' })}
-                          </span>
+                        <div className="tracking-card-media">
+                          {primaryImage ? (
+                            <img src={primaryImage} alt={getVehicleLabel(order)} className="tracking-card-image" />
+                          ) : (
+                            <div className="tracking-card-image tracking-card-placeholder">No Image</div>
+                          )}
                         </div>
 
-                        {(order.car || order.custom_vehicle) && (
-                          <div className="order-car-info">
-                            <h3>{order.custom_vehicle || `${order.car.brand} ${order.car.model} (${order.car.year})`}</h3>
-                            <span className="order-amount">RM {Number(order.amount || 0).toLocaleString()}</span>
+                        <div className="tracking-info-panel">
+                          <div className="tracking-info-head">
+                            <h3>{getVehicleLabel(order)}</h3>
                           </div>
-                        )}
 
-                        {Array.isArray(order.images) && order.images.length > 0 && (
-                          <div className="order-images">
-                            {order.images.slice(0, 5).map((imageUrl, index) => (
+                          <div className="tracking-info-grid">
+                            {infoItems.map((item) => (
+                              <div key={`${order.id}-${item.label}`} className="tracking-info-row">
+                                <span className="tracking-info-label">{item.label}</span>
+                                <span className="tracking-info-value">{item.value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="tracking-status-panel">
+                          <div className="tracking-status-head">
+                            <h4>Order Status</h4>
+                          </div>
+
+                          {!showManualSteps && (
+                            <div className="tracking-status-note">Order Processing</div>
+                          )}
+
+                          {showManualSteps && manualSteps.length > 0 && (
+                            <div className="order-manual-steps">
+                              {manualSteps.map((item) => (
+                                <div key={`${order.id}-${item.label}`} className="manual-step-item">
+                                  <span className="manual-step-text">{item.text}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {showManualSteps && manualSteps.length === 0 && (
+                            <div className="tracking-status-note">No step updates yet.</div>
+                          )}
+
+                          {(order.status === 'cancelled' || order.status === 'refunded') && (
+                            <div className="order-cancelled-note">
+                              This order has been {order.status}.
+                            </div>
+                          )}
+                        </div>
+
+                        {Array.isArray(order.images) && order.images.length > 1 && (
+                          <div className="order-images order-images-secondary">
+                            {order.images.slice(1, 5).map((imageUrl, index) => (
                               <a
-                                key={`${order.id}-img-${index}`}
+                                key={`${order.id}-img-${index + 1}`}
                                 href={imageUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="order-image-thumb"
-                                title={`Order Image ${index + 1}`}
+                                title={`Order Image ${index + 2}`}
                               >
-                                <img src={imageUrl} alt={`Order ${order.order_no} image ${index + 1}`} />
+                                <img src={imageUrl} alt={`Order ${order.order_no} image ${index + 2}`} />
                               </a>
                             ))}
                           </div>
                         )}
-
-                        {manualSteps.length > 0 && (
-                          <div className="order-manual-steps">
-                            {manualSteps.map((item) => (
-                              <div key={`${order.id}-${item.label}`} className={`manual-step-item ${item.isCurrent ? 'current' : ''}`}>
-                                <span className="manual-step-label">{item.label}</span>
-                                <span className="manual-step-text">{item.text}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {manualSteps.length === 0 && (
-                          <div className="order-cancelled-note" style={{ color: '#6b7280' }}>
-                            No step updates yet.
-                          </div>
-                        )}
-
-                        {(order.status === 'cancelled' || order.status === 'refunded') && (
-                          <div className="order-cancelled-note">
-                            This order has been {order.status}.
-                          </div>
-                        )}
-
-                        <div className="order-details">
-                          {order.user && (
-                            <div className="detail-item">
-                              <span className="detail-label">Account</span>
-                              <span className="detail-value">{order.user.name} ({order.user.email})</span>
-                            </div>
-                          )}
-                          {order.agent && (
-                            <div className="detail-item">
-                              <span className="detail-label">Agent</span>
-                              <span className="detail-value">{order.agent.code} — {order.agent.name}</span>
-                            </div>
-                          )}
-                          {order.delivery_address && (
-                            <div className="detail-item">
-                              <span className="detail-label">Delivery Address</span>
-                              <span className="detail-value">{order.delivery_address}</span>
-                            </div>
-                          )}
-                          {order.notes && (
-                            <div className="detail-item">
-                              <span className="detail-label">Notes</span>
-                              <span className="detail-value">{order.notes}</span>
-                            </div>
-                          )}
-                        </div>
                       </div>
                     );
                   })}
@@ -337,7 +357,7 @@ function Tracking() {
         <div className="tips-section">
           <h3>Order & Bidding Tips</h3>
           <ul>
-            <li>Keep track of your order status — deposit payment moves your order forward</li>
+            <li>Keep track of your order status - deposit payment moves your order forward</li>
             <li>Monitor your bids regularly to stay informed about competing offers</li>
             <li>Set a maximum budget and stick to it to avoid overbidding</li>
             <li>Contact your agent for delivery updates once your order is shipped</li>

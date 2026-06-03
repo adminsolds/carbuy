@@ -75,6 +75,12 @@ const Order = sequelize.define('Order', {
     defaultValue: 0,
     field: 'deposit_paid'
   },
+  payment_confirmed: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
+    field: 'payment_confirmed'
+  },
   // Status: pending | deposit_paid | paid | processing | shipped | delivered | completed | cancelled | refunded
   status: {
     type: DataTypes.ENUM(

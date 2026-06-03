@@ -185,6 +185,7 @@
               <form id="carForm">
                 <input type="hidden" id="carEditId" />
                 <div class="form-grid-3">
+                  <div class="form-group"><label>Vehicle Name</label><input id="carVehicleName" placeholder="Mazda6 3Door" /></div>
                   <div class="form-group"><label>Brand *</label><input id="carBrand" placeholder="BMW" required /></div>
                   <div class="form-group"><label>Model *</label><input id="carModel" placeholder="320i Sport" required /></div>
                   <div class="form-group"><label>Year *</label><input id="carYear" type="number" placeholder="2021" required /></div>
@@ -534,50 +535,39 @@
                     <label>Deposit Paid (RM)</label>
                     <input id="orderDepositPaid" type="number" placeholder="0" />
                   </div>
+                  <div class="form-group">
+                    <label>Payment Status</label>
+                    <select id="orderPaymentConfirmed">
+                      <option value="false" selected>Unpaid</option>
+                      <option value="true">Paid</option>
+                    </select>
+                  </div>
                 </div>
-                <div class="form-group">
+                <div class="form-group" id="orderStatusStepsInitialBlock">
                   <label>Order Status Steps (Initial)</label>
                   <div class="form-grid-3">
                     <div class="form-group">
-                      <label style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-                        <span>Step1</span>
-                        <span><input type="checkbox" id="createOrderStatusStepCheck1" data-create-step-check="1" /> Current</span>
-                      </label>
+                      <label>Step1</label>
                       <textarea id="createOrderStatusStep1" rows="2" maxlength="200" placeholder="Step1 status (max 200 chars)"></textarea>
                     </div>
                     <div class="form-group">
-                      <label style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-                        <span>Step2</span>
-                        <span><input type="checkbox" id="createOrderStatusStepCheck2" data-create-step-check="2" /> Current</span>
-                      </label>
+                      <label>Step2</label>
                       <textarea id="createOrderStatusStep2" rows="2" maxlength="200" placeholder="Step2 status (max 200 chars)"></textarea>
                     </div>
                     <div class="form-group">
-                      <label style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-                        <span>Step3</span>
-                        <span><input type="checkbox" id="createOrderStatusStepCheck3" data-create-step-check="3" /> Current</span>
-                      </label>
+                      <label>Step3</label>
                       <textarea id="createOrderStatusStep3" rows="2" maxlength="200" placeholder="Step3 status (max 200 chars)"></textarea>
                     </div>
                     <div class="form-group">
-                      <label style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-                        <span>Step4</span>
-                        <span><input type="checkbox" id="createOrderStatusStepCheck4" data-create-step-check="4" /> Current</span>
-                      </label>
+                      <label>Step4</label>
                       <textarea id="createOrderStatusStep4" rows="2" maxlength="200" placeholder="Step4 status (max 200 chars)"></textarea>
                     </div>
                     <div class="form-group">
-                      <label style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-                        <span>Step5</span>
-                        <span><input type="checkbox" id="createOrderStatusStepCheck5" data-create-step-check="5" /> Current</span>
-                      </label>
+                      <label>Step5</label>
                       <textarea id="createOrderStatusStep5" rows="2" maxlength="200" placeholder="Step5 status (max 200 chars)"></textarea>
                     </div>
                     <div class="form-group">
-                      <label style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-                        <span>Step6</span>
-                        <span><input type="checkbox" id="createOrderStatusStepCheck6" data-create-step-check="6" /> Current</span>
-                      </label>
+                      <label>Step6</label>
                       <textarea id="createOrderStatusStep6" rows="2" maxlength="200" placeholder="Step6 status (max 200 chars)"></textarea>
                     </div>
                   </div>
@@ -625,6 +615,10 @@
               </div>
               <div class="card-body">
                 <div class="form-grid-3">
+                  <div class="form-group">
+                    <label>Vehicle Name</label>
+                    <input id="cvVehicleName" type="text" placeholder="Mazda6 3Door" maxlength="120" />
+                  </div>
                   <div class="form-group">
                     <label>Brand</label>
                     <input id="cvBrand" type="text" placeholder="Brand" maxlength="80" />

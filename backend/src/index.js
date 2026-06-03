@@ -134,6 +134,23 @@ async function ensureOrderEnhancementColumns() {
     console.log('Database migration: added orders.status_steps');
   }
 
+  if (!table.payment_confirmed) {
+    await queryInterface.addColumn('orders', 'payment_confirmed', {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true
+    });
+    console.log('Database migration: added orders.payment_confirmed');
+  }
+
+  await sequelize.query(
+    `UPDATE orders
+     SET payment_confirmed = CASE
+       WHEN payment_confirmed IS NULL THEN 1
+       ELSE payment_confirmed
+     END`
+  );
+
   try {
     if (table.car_id && table.car_id.allowNull === false) {
       await queryInterface.changeColumn('orders', 'car_id', {
@@ -146,6 +163,19 @@ async function ensureOrderEnhancementColumns() {
     }
   } catch (error) {
     console.warn('Database migration warning: failed to update orders.car_id nullable', error?.message || error);
+  }
+}
+
+async function ensureCarEnhancementColumns() {
+  const queryInterface = sequelize.getQueryInterface();
+  const table = await queryInterface.describeTable('cars');
+
+  if (!table.vehicle_name) {
+    await queryInterface.addColumn('cars', 'vehicle_name', {
+      type: DataTypes.STRING(120),
+      allowNull: true
+    });
+    console.log('Database migration: added cars.vehicle_name');
   }
 }
 
@@ -220,6 +250,7 @@ const startServer = async () => {
     await ensureAgentAvatarColumn();
     await ensureAgentAccessColumns();
     await ensureOrderEnhancementColumns();
+    await ensureCarEnhancementColumns();
     await ensureUserVerificationColumns();
     await ensureSettingsSeeded();
     console.log('App settings initialized.');

@@ -236,7 +236,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', auth, authorize('seller', 'agent'), agentPermission('add_car'), async (req, res) => {
   try {
     const {
-      brand, model, year, mileage, color, price, description, images,
+      vehicle_name, brand, model, year, mileage, color, price, description, images,
       status, transmission, fuel_type, engine_cc, chassis_no,
       registration_expiry, owners_count, road_tax_expire,
       auction_end_time, starting_bid, repaired
@@ -252,6 +252,7 @@ router.post('/', auth, authorize('seller', 'agent'), agentPermission('add_car'),
     const chassis = chassis_no || `SGAT-${String(Date.now()).slice(-8)}`;
 
     const car = await Car.create({
+      vehicle_name: vehicle_name?.trim() || null,
       brand,
       model,
       year: Number(year),
@@ -292,7 +293,7 @@ router.put('/:id', auth, authorize('seller', 'agent'), agentPermission('edit_car
     }
 
     const {
-      brand, model, year, mileage, color, price, description, images,
+      vehicle_name, brand, model, year, mileage, color, price, description, images,
       status, transmission, fuel_type, engine_cc, chassis_no,
       registration_expiry, owners_count, road_tax_expire,
       auction_end_time, starting_bid, repaired
@@ -301,6 +302,7 @@ router.put('/:id', auth, authorize('seller', 'agent'), agentPermission('edit_car
     const nextStatus = ['available', 'auction', 'sold'].includes(status) ? status : car.status;
 
     await car.update({
+      vehicle_name: vehicle_name !== undefined ? (vehicle_name?.trim() || null) : car.vehicle_name,
       brand: brand ?? car.brand,
       model: model ?? car.model,
       year: year !== undefined ? Number(year) : car.year,

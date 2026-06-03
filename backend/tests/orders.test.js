@@ -137,8 +137,7 @@ describe('Orders API', () => {
             step3: '',
             step4: '',
             step5: '',
-            step6: '',
-            active_step: 'step2'
+            step6: ''
           },
           amount: 145000,
           buyer_name: 'Custom Vehicle Buyer'
@@ -169,8 +168,7 @@ describe('Orders API', () => {
             step3: '',
             step4: '',
             step5: '',
-            step6: '',
-            active_step: 'step2'
+            step6: ''
           })
         });
       expect(res.status).toBe(201);
@@ -194,6 +192,32 @@ describe('Orders API', () => {
       expect(res.status).toBe(201);
       expect(res.body.order.status_steps.active_step).toBe('step3');
       expect(res.body.order.status).toBe('paid');
+    });
+
+    it('should create unpaid order without exposing status flow', async () => {
+      const testCar = await createAvailableCar();
+      const res = await request(app)
+        .post('/api/orders/admin')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          car_id: testCar.id,
+          order_type: 'purchase',
+          amount: 134000,
+          buyer_name: 'Unpaid Buyer',
+          payment_confirmed: false,
+          status_steps: {
+            step1: 'Should stay hidden',
+            step2: '',
+            step3: '',
+            step4: '',
+            step5: '',
+            step6: ''
+          }
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.order.payment_confirmed).toBe(false);
+      expect(res.body.order.status_label).toBe('Order Processing');
+      expect(res.body.order.can_edit_status_steps).toBe(false);
     });
   });
 
@@ -394,8 +418,7 @@ describe('Orders API', () => {
             step3: 'Payment confirmed',
             step4: '',
             step5: '',
-            step6: '',
-            active_step: 'step3'
+            step6: ''
           }
         });
 
@@ -404,6 +427,41 @@ describe('Orders API', () => {
       expect(res.body.order.status_steps.step3).toBe('Payment confirmed');
       expect(res.body.order.status_steps.active_step).toBe('step3');
       expect(res.body.order.status).toBe('paid');
+    });
+
+    it('should allow toggling unpaid order to paid and then save steps', async () => {
+      const testCar = await createAvailableCar();
+      const createRes = await request(app)
+        .post('/api/orders/admin')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          car_id: testCar.id,
+          order_type: 'purchase',
+          amount: 136000,
+          buyer_name: 'Toggle Payment Buyer',
+          payment_confirmed: false
+        });
+      const order = createRes.body.order;
+
+      const res = await request(app)
+        .put(`/api/orders/${order.id}/status-steps`)
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          payment_confirmed: true,
+          status_steps: {
+            step1: 'Deposit received',
+            step2: 'Paperwork started',
+            step3: '',
+            step4: '',
+            step5: '',
+            step6: ''
+          }
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.order.payment_confirmed).toBe(true);
+      expect(res.body.order.status_steps.active_step).toBe('step2');
+      expect(res.body.order.can_edit_status_steps).toBe(true);
     });
 
     it('should reject step text longer than 200 chars', async () => {

@@ -11,6 +11,11 @@ const Car = sequelize.define('Car', {
     type: DataTypes.STRING(50),
     allowNull: false
   },
+  vehicle_name: {
+    type: DataTypes.STRING(120),
+    allowNull: true,
+    field: 'vehicle_name'
+  },
   model: {
     type: DataTypes.STRING(100),
     allowNull: false

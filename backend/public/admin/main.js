@@ -1,4 +1,4 @@
-// ─── State ─────────────────────────────────────────────────────────────────────
+﻿// 鈹€鈹€鈹€ State 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 const S = {
   token: localStorage.getItem('admin_token') || '',
   user: JSON.parse(localStorage.getItem('admin_user') || 'null'),
@@ -88,7 +88,7 @@ function canAccessSection(section) {
   return getAllowedSections().includes(section);
 }
 
-// ─── API helper ────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ API helper 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 async function api(path, opts = {}) {
   const hdrs = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
   if (S.token) hdrs.Authorization = `Bearer ${S.token}`;
@@ -106,7 +106,7 @@ async function api(path, opts = {}) {
   return d;
 }
 
-// ─── Image Upload ────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Image Upload 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 async function uploadImages(files) {
   const formData = new FormData();
   for (const file of files) {
@@ -126,7 +126,7 @@ function renderUploadedImages(containerId, images, stateKey, removeFn) {
   container.innerHTML = images.map((url, i) => `
     <div class="uploaded-image">
       <img src="${url}" alt="Uploaded ${i + 1}" />
-      <button type="button" class="remove-img" data-url="${url}" data-key="${stateKey}">✕</button>
+      <button type="button" class="remove-img" data-url="${url}" data-key="${stateKey}">鉁?/button>
     </div>
   `).join('');
 }
@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// ─── Show / Hide screens ────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Show / Hide screens 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 function showLogin(msg = '') {
   byId('loginScreen')?.classList.remove('hidden');
   byId('adminLayout')?.classList.add('hidden');
@@ -365,7 +365,7 @@ function msg(text, type = 'success', duration = 3500) {
   el._tid = setTimeout(() => { el.style.opacity = '0'; }, duration);
 }
 
-// ─── Session ────────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Session 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 function setSession(token, user) {
   S.token = token; S.user = user;
   localStorage.setItem('admin_token', token);
@@ -379,7 +379,7 @@ function clearSession() {
   localStorage.removeItem('admin_user');
 }
 
-// ─── Dashboard ─────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Dashboard 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 async function loadDashboard() {
   try {
     const canReadAdminStats = S.user?.role === 'seller';
@@ -395,37 +395,37 @@ async function loadDashboard() {
 
     document.getElementById('statsCards').innerHTML = `
       <div class="stat-card">
-        <div class="stat-icon blue">🚗</div>
+        <div class="stat-icon blue">CAR</div>
         <div class="stat-label">Total Vehicles</div>
         <div class="stat-value">${cs.total ?? '-'}</div>
-        <div class="stat-sub">${cs.available ?? 0} available · ${cs.sold ?? 0} sold</div>
+        <div class="stat-sub">${cs.available ?? 0} available | ${cs.sold ?? 0} sold</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon yellow">🔨</div>
+        <div class="stat-icon yellow">AUC</div>
         <div class="stat-label">Auction Vehicles</div>
         <div class="stat-value">${cs.auction ?? '-'}</div>
         <div class="stat-sub">Active bidding</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon purple">👥</div>
+        <div class="stat-icon purple">USR</div>
         <div class="stat-label">Total Users</div>
         <div class="stat-value">${us.total ?? '-'}</div>
-        <div class="stat-sub">${us.buyers ?? 0} buyers · ${us.sellers ?? 0} sellers · ${us.agents ?? 0} agents</div>
+        <div class="stat-sub">${us.buyers ?? 0} buyers | ${us.sellers ?? 0} sellers | ${us.agents ?? 0} agents</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon green">📋</div>
+        <div class="stat-icon green">ORD</div>
         <div class="stat-label">Total Orders</div>
         <div class="stat-value">${os.total ?? '-'}</div>
         <div class="stat-sub">RM ${Number(os.total_revenue || 0).toLocaleString()} revenue</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon yellow">⏳</div>
+        <div class="stat-icon yellow">PND</div>
         <div class="stat-label">Pending Orders</div>
         <div class="stat-value">${os.by_status?.pending ?? '-'}</div>
         <div class="stat-sub">Awaiting deposit</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon green">✅</div>
+        <div class="stat-icon green">OK</div>
         <div class="stat-label">Completed Orders</div>
         <div class="stat-value">${os.by_status?.completed ?? '-'}</div>
         <div class="stat-sub">Successfully delivered</div>
@@ -442,7 +442,7 @@ async function loadDashboard() {
   } catch (e) { /* non-critical */ }
 }
 
-// ─── Settings ───────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Settings 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 async function loadSettings() {
   try {
     const d = await api('/api/settings');
@@ -571,7 +571,7 @@ async function toggleAuction(triggerId = null) {
   }
 }
 
-// ─── Inventory ─────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Inventory 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 async function loadInventory(page = 1) {
   S.invPage = page;
   try {
@@ -601,28 +601,28 @@ async function loadInventory(page = 1) {
     const cs = statsData.stats?.cars || {};
     document.getElementById('inventoryStats').innerHTML = `
       <div class="mini-stat">
-        <div class="mini-stat-icon" style="background:#eff6ff;color:#3b82f6">🚗</div>
+        <div class="mini-stat-icon" style="background:#eff6ff;color:#3b82f6">CAR</div>
         <div>
           <div class="mini-stat-value">${cs.total ?? '-'}</div>
           <div class="mini-stat-label">Total</div>
         </div>
       </div>
       <div class="mini-stat">
-        <div class="mini-stat-icon" style="background:#ecfdf5;color:#10b981">✅</div>
+        <div class="mini-stat-icon" style="background:#ecfdf5;color:#10b981">AVL</div>
         <div>
           <div class="mini-stat-value">${cs.available ?? '-'}</div>
           <div class="mini-stat-label">Available</div>
         </div>
       </div>
       <div class="mini-stat">
-        <div class="mini-stat-icon" style="background:#fffbeb;color:#f59e0b">🔨</div>
+        <div class="mini-stat-icon" style="background:#fffbeb;color:#f59e0b">AUC</div>
         <div>
           <div class="mini-stat-value">${cs.auction ?? '-'}</div>
           <div class="mini-stat-label">Auction</div>
         </div>
       </div>
       <div class="mini-stat">
-        <div class="mini-stat-icon" style="background:#fef2f2;color:#ef4444">❌</div>
+        <div class="mini-stat-icon" style="background:#fef2f2;color:#ef4444">SLD</div>
         <div>
           <div class="mini-stat-value">${cs.sold ?? '-'}</div>
           <div class="mini-stat-label">Sold</div>
@@ -641,7 +641,7 @@ function renderInventoryTable(cars) {
   tb.innerHTML = cars.map(car => `
     <tr>
       <td><strong>#${car.id}</strong></td>
-      <td>${car.brand} ${car.model}</td>
+      <td>${car.vehicle_name || `${car.brand} ${car.model}`}</td>
       <td>${car.year || '-'}</td>
       <td>${Number(car.mileage||0).toLocaleString()} km</td>
       <td><span class="status-pill pill-${car.status}">${car.status}</span></td>
@@ -659,7 +659,7 @@ function renderInventoryTable(cars) {
 
 function renderInventoryPager() {
   const pages = Math.max(1, Math.ceil(S.invTotal / S.invLimit));
-  document.getElementById('invPager').textContent = `Page ${S.invPage} / ${pages} — Total ${S.invTotal}`;
+  document.getElementById('invPager').textContent = `Page ${S.invPage} / ${pages} 鈥?Total ${S.invTotal}`;
   document.getElementById('invPrev').disabled = S.invPage <= 1;
   document.getElementById('invNext').disabled = S.invPage >= pages;
 }
@@ -688,7 +688,7 @@ function resetCarForm() {
 async function submitCar(e) {
   e.preventDefault();
   const v = {};
-  ['carBrand','carModel','carYear','carMileage','carColor','carPrice','carStatus',
+  ['carVehicleName','carBrand','carModel','carYear','carMileage','carColor','carPrice','carStatus',
    'carTransmission','carFuelType','carEngineCC','carChassisNo',
    'carOwnersCount','carDescription','carImages','carRepaired']
     .forEach(id => { const el = document.getElementById(id); if (el) v[id] = el.value; });
@@ -697,6 +697,7 @@ async function submitCar(e) {
   const urlImages = (v.carImages || '').split(/[\n,]/).map(s => s.trim()).filter(Boolean);
   const allImages = [...S.carUploadedImages, ...urlImages];
   const payload = {
+    vehicle_name: v.carVehicleName.trim() || null,
     brand: v.carBrand.trim(), model: v.carModel.trim(),
     year: Number(v.carYear), mileage: Number(v.carMileage),
     color: v.carColor.trim() || null, price: Number(v.carPrice),
@@ -727,7 +728,7 @@ async function submitCar(e) {
   }
 }
 
-// ─── Auction ─────────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Auction 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 async function loadAuction(page = 1) {
   S.aucPage = page;
   try {
@@ -747,14 +748,14 @@ async function loadAuction(page = 1) {
     const cs = statsData.stats?.cars || {};
     document.getElementById('auctionStats').innerHTML = `
       <div class="mini-stat">
-        <div class="mini-stat-icon" style="background:#fffbeb;color:#f59e0b">🔨</div>
+        <div class="mini-stat-icon" style="background:#fffbeb;color:#f59e0b">AUC</div>
         <div>
           <div class="mini-stat-value">${cs.auction ?? '-'}</div>
           <div class="mini-stat-label">Active Auctions</div>
         </div>
       </div>
       <div class="mini-stat">
-        <div class="mini-stat-icon" style="background:#eff6ff;color:#3b82f6">🚗</div>
+        <div class="mini-stat-icon" style="background:#eff6ff;color:#3b82f6">CAR</div>
         <div>
           <div class="mini-stat-value">${cs.total ?? '-'}</div>
           <div class="mini-stat-label">Total Vehicles</div>
@@ -792,7 +793,7 @@ function renderAuctionTable(cars) {
 
 function renderAuctionPager() {
   const pages = Math.max(1, Math.ceil(S.aucTotal / S.aucLimit));
-  document.getElementById('aucPager').textContent = `Page ${S.aucPage} / ${pages} — Total ${S.aucTotal}`;
+  document.getElementById('aucPager').textContent = `Page ${S.aucPage} / ${pages} 鈥?Total ${S.aucTotal}`;
   document.getElementById('aucPrev').disabled = S.aucPage <= 1;
   document.getElementById('aucNext').disabled = S.aucPage >= pages;
 }
@@ -857,7 +858,7 @@ async function submitAuction(e) {
   }
 }
 
-// ─── Agents ─────────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Agents 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 async function loadAgents(page = 1) {
   S.agentPage = page;
   try {
@@ -912,7 +913,7 @@ function renderAgentTable(agents) {
 
 function renderAgentPager() {
   const pages = Math.max(1, Math.ceil(S.agentTotal / S.agentLimit));
-  document.getElementById('agentPager').textContent = `Page ${S.agentPage} / ${pages} — Total ${S.agentTotal}`;
+  document.getElementById('agentPager').textContent = `Page ${S.agentPage} / ${pages} 鈥?Total ${S.agentTotal}`;
   document.getElementById('agentPrev').disabled = S.agentPage <= 1;
   document.getElementById('agentNext').disabled = S.agentPage >= pages;
 }
@@ -996,9 +997,10 @@ async function submitAgent(e) {
   }
 }
 
-// ─── Orders ─────────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Orders 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 const ORDER_STEP_KEYS = ['step1', 'step2', 'step3', 'step4', 'step5', 'step6'];
 const CUSTOM_VEHICLE_FIELDS = [
+  'vehicle_name',
   'brand', 'model', 'year', 'color', 'steering', 'repaired',
   'transmission', 'cc', 'drive', 'fuel', 'mileage'
 ];
@@ -1009,13 +1011,36 @@ function normalizeOrderStatusStepsForUi(statusSteps) {
     acc[key] = typeof source[key] === 'string' ? source[key] : '';
     return acc;
   }, {});
-  const activeStep = typeof source.active_step === 'string' ? source.active_step.trim().toLowerCase() : '';
-  normalized.active_step = ORDER_STEP_KEYS.includes(activeStep) ? activeStep : '';
   return normalized;
+}
+
+function normalizeOrderPaymentConfirmed(value, defaultValue = true) {
+  if (value === undefined || value === null || value === '') return defaultValue;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['true', '1', 'yes', 'paid', 'confirmed'].includes(normalized)) return true;
+    if (['false', '0', 'no', 'unpaid', 'pending'].includes(normalized)) return false;
+  }
+  return defaultValue;
+}
+
+function getOrderStatusDisplay(order) {
+  const paymentConfirmed = normalizeOrderPaymentConfirmed(order?.payment_confirmed, true);
+  if (!paymentConfirmed) {
+    return { key: 'processing', label: 'Order Processing' };
+  }
+  const status = String(order?.status || 'pending').toLowerCase();
+  return {
+    key: status || 'pending',
+    label: (order?.status_label || status || 'pending').replace(/_/g, ' ')
+  };
 }
 
 function emptyCustomVehicleDetails() {
   return {
+    vehicle_name: '',
     brand: '',
     model: '',
     year: '',
@@ -1041,6 +1066,7 @@ function normalizeCustomVehicleDetailsForUi(value) {
 
 function collectCustomVehicleDetailsFromModal() {
   return {
+    vehicle_name: (byId('cvVehicleName')?.value || '').trim(),
     brand: (byId('cvBrand')?.value || '').trim(),
     model: (byId('cvModel')?.value || '').trim(),
     year: (byId('cvYear')?.value || '').trim(),
@@ -1057,6 +1083,7 @@ function collectCustomVehicleDetailsFromModal() {
 
 function fillCustomVehicleModal(detailsValue) {
   const details = normalizeCustomVehicleDetailsForUi(detailsValue);
+  byId('cvVehicleName').value = details.vehicle_name;
   byId('cvBrand').value = details.brand;
   byId('cvModel').value = details.model;
   byId('cvYear').value = details.year;
@@ -1072,6 +1099,7 @@ function fillCustomVehicleModal(detailsValue) {
 
 function buildCustomVehicleSummary(detailsValue) {
   const details = normalizeCustomVehicleDetailsForUi(detailsValue);
+  if (details.vehicle_name) return details.vehicle_name;
   const title = [details.brand, details.model, details.year].filter(Boolean).join(' ');
   const extras = [
     details.color ? `Color: ${details.color}` : '',
@@ -1110,10 +1138,10 @@ function clearCustomVehicleDetails() {
 
 function saveCustomVehicleDetails() {
   const details = collectCustomVehicleDetailsFromModal();
-  if (!details.brand && !details.model) {
+  if (!details.vehicle_name && !details.brand && !details.model) {
     const msgEl = byId('customVehicleModalMsg');
     if (msgEl) {
-      msgEl.textContent = 'Please provide at least Brand or Model.';
+      msgEl.textContent = 'Please provide Vehicle Name, Brand or Model.';
       msgEl.className = 'form-msg error';
     }
     return;
@@ -1121,15 +1149,6 @@ function saveCustomVehicleDetails() {
   S.orderCustomVehicleDetails = details;
   updateCustomVehicleSummaryInput();
   closeCustomVehicleModal();
-}
-
-function enforceSingleDetailStepCheck(selectedIndex) {
-  for (let i = 1; i <= 6; i += 1) {
-    if (i !== selectedIndex) {
-      const checkbox = document.getElementById(`orderStatusStepCheck${i}`);
-      if (checkbox) checkbox.checked = false;
-    }
-  }
 }
 
 async function loadOrders(page = 1) {
@@ -1157,22 +1176,22 @@ async function loadOrders(page = 1) {
     const s2 = stats.stats || {};
     document.getElementById('orderStats').innerHTML = `
       <div class="stat-card">
-        <div class="stat-icon blue">📋</div>
+        <div class="stat-icon blue">ORD</div>
         <div class="stat-label">Total Orders</div>
         <div class="stat-value">${s2.total ?? '-'}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon yellow">⏳</div>
+        <div class="stat-icon yellow">PND</div>
         <div class="stat-label">Pending</div>
         <div class="stat-value">${s2.by_status?.pending ?? '-'}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon green">✅</div>
+        <div class="stat-icon green">OK</div>
         <div class="stat-label">Completed</div>
         <div class="stat-value">${s2.by_status?.completed ?? '-'}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon purple">💰</div>
+        <div class="stat-icon purple">RM</div>
         <div class="stat-label">Revenue</div>
         <div class="stat-value">RM ${Number(s2.total_revenue||0).toLocaleString()}</div>
       </div>
@@ -1186,14 +1205,16 @@ function renderOrderTable(orders) {
     tb.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#64748b;padding:24px">No orders found.</td></tr>';
     return;
   }
-  tb.innerHTML = orders.map(o => `
+  tb.innerHTML = orders.map(o => {
+    const statusDisplay = getOrderStatusDisplay(o);
+    return `
     <tr>
       <td><strong>${o.order_no}</strong></td>
       <td>${o.buyer_name || '-'}</td>
       <td>${o.vehicle_label || (o.car ? `${o.car.brand} ${o.car.model}` : '-')}</td>
       <td><span class="status-pill pill-${o.order_type}">${o.order_type_label || o.order_type}</span></td>
       <td>RM ${Number(o.amount||0).toLocaleString()}</td>
-      <td><span class="status-pill pill-${o.status}">${o.status}</span></td>
+      <td><span class="status-pill pill-${statusDisplay.key}">${statusDisplay.label}</span></td>
       <td>${new Date(o.createdAt).toLocaleDateString('en-MY')}</td>
       <td>
         <div class="row-actions">
@@ -1201,12 +1222,13 @@ function renderOrderTable(orders) {
         </div>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderOrderPager() {
   const pages = Math.max(1, Math.ceil(S.orderTotal / S.orderLimit));
-  document.getElementById('orderPager').textContent = `Page ${S.orderPage} / ${pages} — Total ${S.orderTotal}`;
+  document.getElementById('orderPager').textContent = `Page ${S.orderPage} / ${pages} 鈥?Total ${S.orderTotal}`;
   document.getElementById('orderPrev').disabled = S.orderPage <= 1;
   document.getElementById('orderNext').disabled = S.orderPage >= pages;
 }
@@ -1214,6 +1236,7 @@ function renderOrderPager() {
 function showOrderForm() {
   document.getElementById('orderFormPanel').classList.remove('hidden');
   loadOrderFormDropdowns();
+  updateOrderPaymentStatusInputs();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1224,6 +1247,8 @@ function hideOrderForm() {
 
 function resetOrderForm() {
   document.getElementById('createOrderForm').reset();
+  const paymentStatusSelect = document.getElementById('orderPaymentConfirmed');
+  if (paymentStatusSelect) paymentStatusSelect.value = 'false';
   document.getElementById('orderFormMsg').textContent = '';
   document.getElementById('orderFormMsg').className = 'form-msg';
   S.orderUploadedImages = [];
@@ -1233,6 +1258,7 @@ function resetOrderForm() {
   updateCustomVehicleSummaryInput();
   closeCustomVehicleModal();
   updateOrderCustomInputs();
+  updateOrderPaymentStatusInputs();
 }
 
 function updateOrderCustomInputs(options = {}) {
@@ -1264,6 +1290,26 @@ function updateOrderCustomInputs(options = {}) {
   }
 }
 
+function updateOrderPaymentStatusInputs() {
+  const paymentConfirmed = document.getElementById('orderPaymentConfirmed')?.value === 'true';
+  const stepsBlock = document.getElementById('orderStatusStepsInitialBlock');
+  if (stepsBlock) {
+    stepsBlock.classList.toggle('hidden', !paymentConfirmed);
+  }
+}
+
+function updateOrderDetailPaymentStatusUi() {
+  const paymentConfirmed = document.getElementById('orderDetailPaymentConfirmed')?.value === 'true';
+  const statusFlow = document.getElementById('orderDetailStatusFlow');
+  const unpaidNote = document.getElementById('orderDetailPaymentNote');
+  if (statusFlow) {
+    statusFlow.classList.toggle('hidden', !paymentConfirmed);
+  }
+  if (unpaidNote) {
+    unpaidNote.classList.toggle('hidden', paymentConfirmed);
+  }
+}
+
 function collectCreateOrderStatusSteps() {
   const steps = {};
   let lastFilledStep = '';
@@ -1276,27 +1322,8 @@ function collectCreateOrderStatusSteps() {
     steps[key] = value;
     if (value) lastFilledStep = key;
   }
-  let activeStep = '';
-  for (let i = 1; i <= 6; i += 1) {
-    if (document.getElementById(`createOrderStatusStepCheck${i}`)?.checked) {
-      activeStep = `step${i}`;
-      break;
-    }
-  }
-  if (!activeStep && lastFilledStep) {
-    activeStep = lastFilledStep;
-  }
-  steps.active_step = activeStep;
+  steps.active_step = lastFilledStep;
   return steps;
-}
-
-function enforceSingleCreateStepCheck(selectedIndex) {
-  for (let i = 1; i <= 6; i += 1) {
-    if (i !== selectedIndex) {
-      const checkbox = document.getElementById(`createOrderStatusStepCheck${i}`);
-      if (checkbox) checkbox.checked = false;
-    }
-  }
 }
 
 async function loadOrderFormDropdowns() {
@@ -1307,7 +1334,8 @@ async function loadOrderFormDropdowns() {
     const currentVal = carSelect.value;
     carSelect.innerHTML = '<option value="">-- Select Vehicle --</option><option value="custom">Custom Vehicle (Manual Input)</option>';
     (carData.cars || []).forEach(car => {
-      carSelect.innerHTML += `<option value="${car.id}">${car.brand} ${car.model} (${car.year}) — RM ${Number(car.price||0).toLocaleString()}</option>`;
+      const label = car.vehicle_name || `${car.brand} ${car.model} (${car.year})`;
+      carSelect.innerHTML += `<option value="${car.id}">${label} - RM ${Number(car.price||0).toLocaleString()}</option>`;
     });
     carSelect.value = currentVal;
 
@@ -1315,18 +1343,20 @@ async function loadOrderFormDropdowns() {
     const aucData = await api('/api/cars?status=auction&limit=500&includeAuction=1').catch(() => ({ cars: [] }));
     (aucData.cars || []).forEach(car => {
       if (!carData.cars?.find(c => c.id === car.id)) {
-        carSelect.innerHTML += `<option value="${car.id}">${car.brand} ${car.model} (${car.year}) [Auction] — RM ${Number(car.starting_bid||car.price||0).toLocaleString()}</option>`;
+        const label = car.vehicle_name || `${car.brand} ${car.model} (${car.year})`;
+        carSelect.innerHTML += `<option value="${car.id}">${label} [Auction] - RM ${Number(car.starting_bid||car.price||0).toLocaleString()}</option>`;
       }
     });
 
     updateOrderCustomInputs();
+    updateOrderPaymentStatusInputs();
 
     // Load agents
     const agentData = await api('/api/agent?is_active=true');
     const agentSelect = document.getElementById('orderAgentId');
     agentSelect.innerHTML = '<option value="">-- No Agent --</option>';
     (agentData.agents || []).forEach(a => {
-      agentSelect.innerHTML += `<option value="${a.id}">${a.code} — ${a.name}</option>`;
+      agentSelect.innerHTML += `<option value="${a.id}">${a.code} 鈥?${a.name}</option>`;
     });
   } catch (e) { /* non-critical */ }
 }
@@ -1343,15 +1373,18 @@ async function submitOrder(e) {
   const buyer_phone = document.getElementById('orderBuyerPhone').value.trim();
   const agent_id = document.getElementById('orderAgentId').value;
   const deposit_paid = Number(document.getElementById('orderDepositPaid').value) || 0;
+  const payment_confirmed = document.getElementById('orderPaymentConfirmed')?.value === 'true';
   const delivery_address = document.getElementById('orderDeliveryAddress').value.trim();
   const notes = document.getElementById('orderNotes').value.trim();
-  let status_steps = null;
-  try {
-    status_steps = collectCreateOrderStatusSteps();
-  } catch (stepError) {
-    document.getElementById('orderFormMsg').textContent = stepError.message;
-    document.getElementById('orderFormMsg').className = 'form-msg error';
-    return;
+  let status_steps = { step1: '', step2: '', step3: '', step4: '', step5: '', step6: '', active_step: '' };
+  if (payment_confirmed) {
+    try {
+      status_steps = collectCreateOrderStatusSteps();
+    } catch (stepError) {
+      document.getElementById('orderFormMsg').textContent = stepError.message;
+      document.getElementById('orderFormMsg').className = 'form-msg error';
+      return;
+    }
   }
 
   const isCustomVehicle = vehicleSelection === 'custom';
@@ -1360,7 +1393,7 @@ async function submitOrder(e) {
     document.getElementById('orderFormMsg').className = 'form-msg error';
     return;
   }
-  if (isCustomVehicle && (!S.orderCustomVehicleDetails || (!S.orderCustomVehicleDetails.brand && !S.orderCustomVehicleDetails.model))) {
+  if (isCustomVehicle && (!S.orderCustomVehicleDetails || (!S.orderCustomVehicleDetails.vehicle_name && !S.orderCustomVehicleDetails.brand && !S.orderCustomVehicleDetails.model))) {
     document.getElementById('orderFormMsg').textContent = 'Please complete custom vehicle details first.';
     document.getElementById('orderFormMsg').className = 'form-msg error';
     return;
@@ -1382,6 +1415,7 @@ async function submitOrder(e) {
     buyer_email: buyer_email || null,
     buyer_phone: buyer_phone || null,
     agent_id: agent_id ? Number(agent_id) : null,
+    payment_confirmed,
     delivery_address: delivery_address || null,
     notes: notes || null,
     status_steps,
@@ -1419,29 +1453,44 @@ async function viewOrder(orderId) {
     const d = await api(`/api/orders/${orderId}`);
     const o = d.order;
     S.selectedOrderId = orderId;
+    const paymentConfirmed = normalizeOrderPaymentConfirmed(o.payment_confirmed, true);
+    const statusDisplay = getOrderStatusDisplay(o);
 
     const statusSteps = normalizeOrderStatusStepsForUi(o.status_steps);
     const statusStepsHtml = ORDER_STEP_KEYS.map((key, index) => `
       <div style="display:flex;flex-direction:column;gap:6px">
-        <label for="orderStatusStep${index + 1}" style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;display:flex;justify-content:space-between;align-items:center;gap:8px">
-          <span>Step${index + 1}</span>
-          <span style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:none">
-            <input type="checkbox" id="orderStatusStepCheck${index + 1}" ${statusSteps.active_step === key ? 'checked' : ''} onchange="if(this.checked){enforceSingleDetailStepCheck(${index + 1})}" />
-            Current
-          </span>
-        </label>
+        <label for="orderStatusStep${index + 1}" style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px">Step${index + 1}</label>
         <textarea id="orderStatusStep${index + 1}" data-step-key="${key}" maxlength="200" rows="2" placeholder="Enter Step${index + 1} status (max 200 chars)" style="resize:vertical;min-height:68px;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:#fff;color:var(--text-primary)">${statusSteps[key] || ''}</textarea>
       </div>
     `).join('');
 
-    const agentInfo = o.agent ? `<tr><th>Agent</th><td>${o.agent.code} – ${o.agent.name}</td></tr>` : '';
+    const agentInfo = o.agent ? `<tr><th>Agent</th><td>${o.agent.code} 鈥?${o.agent.name}</td></tr>` : '';
     const paidInfo = o.paid_at ? `<tr><th>Paid At</th><td>${new Date(o.paid_at).toLocaleString('en-MY')}</td></tr>` : '';
     const deliveredInfo = o.delivered_at ? `<tr><th>Delivered At</th><td>${new Date(o.delivered_at).toLocaleString('en-MY')}</td></tr>` : '';
     const customVehicleDetails = o.custom_vehicle_details && typeof o.custom_vehicle_details === 'object'
       ? o.custom_vehicle_details
       : null;
+    const inventoryVehicleRows = o.car
+      ? [
+          ['Vehicle Name', o.car.vehicle_name],
+          ['Brand', o.car.brand],
+          ['Model', o.car.model],
+          ['Year', o.car.year],
+          ['Color', o.car.color],
+          ['Transmission', o.car.transmission],
+          ['Fuel', o.car.fuel_type],
+          ['CC', o.car.engine_cc],
+          ['Mileage', o.car.mileage],
+          ['Repaired', o.car.repaired],
+          ['Chassis No', o.car.chassis_no],
+          ['Owners', o.car.owners_count],
+          ['Vehicle Status', o.car.status],
+          ['Vehicle Price', o.car.price ? `RM ${Number(o.car.price).toLocaleString()}` : '']
+        ].filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '')
+      : [];
     const customVehicleRows = customVehicleDetails
       ? [
+          ['Vehicle Name', customVehicleDetails.vehicle_name],
           ['Brand', customVehicleDetails.brand],
           ['Model', customVehicleDetails.model],
           ['Year', customVehicleDetails.year],
@@ -1455,8 +1504,14 @@ async function viewOrder(orderId) {
           ['Mileage', customVehicleDetails.mileage]
         ].filter(([, v]) => typeof v === 'string' && v.trim())
       : [];
-    const customVehicleHtml = customVehicleRows.length
-      ? `<div style="margin-top:12px"><div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px">Custom Vehicle Specs</div><table class="detail-table">${customVehicleRows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table></div>`
+    const customVehicleLabelRows = !o.car && o.custom_vehicle
+      ? [['Vehicle Name', o.custom_vehicle]]
+      : [];
+    const vehicleDetailRows = inventoryVehicleRows.length
+      ? inventoryVehicleRows
+      : [...customVehicleLabelRows, ...customVehicleRows];
+    const vehicleDetailsHtml = vehicleDetailRows.length
+      ? `<div style="margin-top:12px"><div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px">Vehicle Details</div><table class="detail-table">${vehicleDetailRows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table></div>`
       : '';
     const orderImages = Array.isArray(o.images) ? o.images : [];
     const imagesHtml = orderImages.length
@@ -1470,7 +1525,6 @@ async function viewOrder(orderId) {
           <table class="detail-table">
             <tr><th>Order No</th><td><strong>${o.order_no}</strong></td></tr>
             <tr><th>Type</th><td><span class="status-pill pill-${o.order_type}">${o.order_type_label || o.order_type}</span></td></tr>
-            <tr><th>Vehicle</th><td>${o.vehicle_label || '-'}</td></tr>
             <tr><th>Buyer Name</th><td>${o.buyer_name || '-'}</td></tr>
             <tr><th>Buyer Email</th><td>${o.buyer_email || '-'}</td></tr>
             <tr><th>Buyer Phone</th><td>${o.buyer_phone || '-'}</td></tr>
@@ -1478,26 +1532,34 @@ async function viewOrder(orderId) {
             <tr><th>Delivery Address</th><td>${o.delivery_address || '-'}</td></tr>
             <tr><th>Notes</th><td>${o.notes || '-'}</td></tr>
           </table>
-          ${customVehicleHtml}
+          ${vehicleDetailsHtml}
         </div>
         <div>
           <table class="detail-table">
             <tr><th>Amount</th><td><strong style="color:var(--accent)">RM ${Number(o.amount||0).toLocaleString()}</strong></td></tr>
             <tr><th>Deposit Paid</th><td>RM ${Number(o.deposit_paid||0).toLocaleString()}</td></tr>
-            <tr><th>Current Status</th><td><span class="status-pill pill-${o.status}">${o.status}</span></td></tr>
+            <tr><th>Payment Status</th><td>
+              <select id="orderDetailPaymentConfirmed" onchange="updateOrderDetailPaymentStatusUi()" style="min-width:140px">
+                <option value="false" ${!paymentConfirmed ? 'selected' : ''}>Unpaid</option>
+                <option value="true" ${paymentConfirmed ? 'selected' : ''}>Paid</option>
+              </select>
+            </td></tr>
+            <tr><th>Current Status</th><td><span class="status-pill pill-${statusDisplay.key}">${statusDisplay.label}</span></td></tr>
             ${paidInfo}
             ${deliveredInfo}
             <tr><th>Created</th><td>${new Date(o.createdAt).toLocaleString('en-MY')}</td></tr>
             <tr><th>Last Updated</th><td>${new Date(o.updatedAt).toLocaleString('en-MY')}</td></tr>
-            ${o.car ? `<tr><th>Inventory Vehicle</th><td>${o.car.brand} ${o.car.model} (${o.car.year})</td></tr>` : ''}
           </table>
         </div>
       </div>
       ${imagesHtml}
       <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border-light)">
         <div style="font-size:13px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Order Status Steps (Manual)</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          ${statusStepsHtml}
+        <p id="orderDetailPaymentNote" class="${paymentConfirmed ? 'form-msg hidden' : 'form-msg'}" style="margin-bottom:12px">Status flow is hidden until this order is marked as paid.</p>
+        <div id="orderDetailStatusFlow" class="${paymentConfirmed ? '' : 'hidden'}">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            ${statusStepsHtml}
+          </div>
         </div>
         <div style="margin-top:12px;display:flex;justify-content:flex-end">
           <button type="button" class="btn-primary" onclick="saveOrderStatusSteps()">Save</button>
@@ -1507,6 +1569,7 @@ async function viewOrder(orderId) {
     `;
 
     document.getElementById('orderDetailPanel').classList.remove('hidden');
+    updateOrderDetailPaymentStatusUi();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (e) {
     msg(e.message, 'error');
@@ -1515,34 +1578,38 @@ async function viewOrder(orderId) {
 
 async function saveOrderStatusSteps() {
   if (!S.selectedOrderId) return;
-  const payloadSteps = {};
-  for (let i = 1; i <= 6; i += 1) {
-    const key = `step${i}`;
-    const input = document.getElementById(`orderStatusStep${i}`);
-    const value = input?.value?.trim() || '';
-    if (value.length > 200) {
-      const statusEl = byId('orderStatusMsg');
-      if (statusEl) {
-        statusEl.textContent = `Step${i} must be 200 characters or less.`;
-        statusEl.className = 'form-msg error';
+  const payment_confirmed = document.getElementById('orderDetailPaymentConfirmed')?.value === 'true';
+  let payloadSteps = null;
+  if (payment_confirmed) {
+    payloadSteps = {};
+    let lastFilledStep = '';
+    for (let i = 1; i <= 6; i += 1) {
+      const key = `step${i}`;
+      const input = document.getElementById(`orderStatusStep${i}`);
+      const value = input?.value?.trim() || '';
+      if (value.length > 200) {
+        const statusEl = byId('orderStatusMsg');
+        if (statusEl) {
+          statusEl.textContent = `Step${i} must be 200 characters or less.`;
+          statusEl.className = 'form-msg error';
+        }
+        return;
       }
-      return;
+      payloadSteps[key] = value;
+      if (value) {
+        lastFilledStep = key;
+      }
     }
-    payloadSteps[key] = value;
+    payloadSteps.active_step = lastFilledStep;
   }
-  let activeStep = '';
-  for (let i = 1; i <= 6; i += 1) {
-    if (document.getElementById(`orderStatusStepCheck${i}`)?.checked) {
-      activeStep = `step${i}`;
-      break;
-    }
-  }
-  payloadSteps.active_step = activeStep;
 
   try {
     await api(`/api/orders/${S.selectedOrderId}/status-steps`, {
       method: 'PUT',
-      body: JSON.stringify({ status_steps: payloadSteps })
+      body: JSON.stringify({
+        payment_confirmed,
+        ...(payment_confirmed ? { status_steps: payloadSteps } : {})
+      })
     });
     msg('Order step status saved.');
     const statusEl = byId('orderStatusMsg');
@@ -1563,7 +1630,7 @@ async function saveOrderStatusSteps() {
   }
 }
 
-// ─── Users ──────────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Users 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 async function loadUsers(page = 1) {
   S.userPage = page;
   try {
@@ -1613,12 +1680,12 @@ function renderUserTable(users) {
 
 function renderUserPager() {
   const pages = Math.max(1, Math.ceil(S.userTotal / S.userLimit));
-  document.getElementById('userPager').textContent = `Page ${S.userPage} / ${pages} — Total ${S.userTotal}`;
+  document.getElementById('userPager').textContent = `Page ${S.userPage} / ${pages} 鈥?Total ${S.userTotal}`;
   document.getElementById('userPrev').disabled = S.userPage <= 1;
   document.getElementById('userNext').disabled = S.userPage >= pages;
 }
 
-// ─── Clock ─────────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Clock 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 function startClock() {
   const el = byId('headerTime');
   if (!el) return;
@@ -1626,7 +1693,7 @@ function startClock() {
   tick(); setInterval(tick, 1000);
 }
 
-// ─── Bootstrap ─────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Bootstrap 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 async function bootstrap() {
   startClock();
   if (!S.token || !S.user || !ADMIN_PANEL_ROLES.includes(S.user.role)) {
@@ -1651,7 +1718,7 @@ async function bootstrap() {
   await loadDashboard();
 }
 
-// ─── Event: Login ──────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Event: Login 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const email = document.getElementById('email').value.trim();
@@ -1669,7 +1736,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   } catch (err) { showLogin(err.message); }
 });
 
-// ─── Event: Logout ─────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Event: Logout 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 document.getElementById('logoutBtn').addEventListener('click', () => {
   clearSession(); showLogin('Logged out.');
 });
@@ -1681,7 +1748,7 @@ document.getElementById('accountSettingsBtn')?.addEventListener('click', () => {
   }
 });
 
-// ─── Event: Nav ────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Event: Nav 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 document.querySelectorAll('.nav-item').forEach(el => {
   el.addEventListener('click', (e) => {
     e.preventDefault();
@@ -1696,7 +1763,7 @@ document.querySelectorAll('.nav-item').forEach(el => {
   });
 });
 
-// ─── Event: Toggle Auction ─────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Event: Toggle Auction 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 document.getElementById('toggleAuctionBtn')?.addEventListener('click', () => toggleAuction('toggleAuctionBtn'));
 document.getElementById('settingsToggleBtn')?.addEventListener('click', () => toggleAuction('settingsToggleBtn'));
 document.getElementById('emailProvider')?.addEventListener('change', async () => {
@@ -1708,7 +1775,7 @@ document.getElementById('emailLogsRefreshBtn')?.addEventListener('click', async 
 });
 refreshEmailProviderUi();
 
-// ─── Event: SMTP Form ─────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Event: SMTP Form 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 document.getElementById('smtpForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = document.getElementById('smtpSaveBtn');
@@ -1805,21 +1872,17 @@ document.getElementById('passwordForm')?.addEventListener('submit', async (e) =>
   }
 });
 
-// ─── Event: Car Form ────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Event: Car Form 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 document.getElementById('carForm').addEventListener('submit', submitCar);
 
-// ─── Event: Auction Form ────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Event: Auction Form 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 document.getElementById('auctionForm').addEventListener('submit', submitAuction);
 
-// ─── Event: Order Form ─────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Event: Order Form 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 document.getElementById('createOrderForm').addEventListener('submit', submitOrder);
 document.getElementById('orderCarId')?.addEventListener('change', () => updateOrderCustomInputs({ openEditor: true }));
 document.getElementById('orderTypeSelect')?.addEventListener('change', updateOrderCustomInputs);
-for (let i = 1; i <= 6; i += 1) {
-  document.getElementById(`createOrderStatusStepCheck${i}`)?.addEventListener('change', (e) => {
-    if (e.target.checked) enforceSingleCreateStepCheck(i);
-  });
-}
+document.getElementById('orderPaymentConfirmed')?.addEventListener('change', updateOrderPaymentStatusInputs);
 document.getElementById('orderEditCustomVehicleBtn')?.addEventListener('click', openCustomVehicleModal);
 document.getElementById('orderClearCustomVehicleBtn')?.addEventListener('click', clearCustomVehicleDetails);
 document.getElementById('saveCustomVehicleBtn')?.addEventListener('click', saveCustomVehicleDetails);
@@ -1829,10 +1892,10 @@ document.getElementById('customVehicleModal')?.addEventListener('click', (e) => 
   if (e.target?.id === 'customVehicleModal') closeCustomVehicleModal();
 });
 
-// ─── Event: Agent Form ─────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Event: Agent Form 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 document.getElementById('agentForm').addEventListener('submit', submitAgent);
 
-// ─── Event: Inventory Table Click ───────────────────────────────────────────────
+// 鈹€鈹€鈹€ Event: Inventory Table Click 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 document.getElementById('inventoryTable').addEventListener('click', async (e) => {
   const editId = e.target.getAttribute('data-inv-edit');
   const deleteId = e.target.getAttribute('data-inv-delete');
@@ -1843,6 +1906,7 @@ document.getElementById('inventoryTable').addEventListener('click', async (e) =>
       const car = d.car;
       S.editingId = car.id;
       document.getElementById('carEditId').value = car.id;
+      document.getElementById('carVehicleName').value = car.vehicle_name || '';
       document.getElementById('carBrand').value = car.brand || '';
       document.getElementById('carModel').value = car.model || '';
       document.getElementById('carYear').value = car.year || '';
@@ -1880,7 +1944,7 @@ document.getElementById('inventoryTable').addEventListener('click', async (e) =>
   }
 });
 
-// ─── Event: Auction Table Click ───────────────────────────────────────────────
+// 鈹€鈹€鈹€ Event: Auction Table Click 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 document.getElementById('auctionTable').addEventListener('click', async (e) => {
   const editId = e.target.getAttribute('data-auc-edit');
   const deleteId = e.target.getAttribute('data-auc-delete');
@@ -1923,7 +1987,7 @@ document.getElementById('auctionTable').addEventListener('click', async (e) => {
   }
 });
 
-// ─── Event: Agent Table Click ─────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Event: Agent Table Click 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 document.getElementById('agentTable').addEventListener('click', async (e) => {
   const accessId = e.target.getAttribute('data-agent-access');
   const accessNext = e.target.getAttribute('data-agent-access-next');
@@ -1987,7 +2051,7 @@ document.getElementById('agentTable').addEventListener('click', async (e) => {
   }
 });
 
-// ─── Event: Order Table Click ──────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Event: Order Table Click 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 document.getElementById('orderTable').addEventListener('click', async (e) => {
   const viewId = e.target.getAttribute('data-order-view');
   if (viewId) {
@@ -1995,7 +2059,7 @@ document.getElementById('orderTable').addEventListener('click', async (e) => {
   }
 });
 
-// ─── Event: User Table Click ───────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Event: User Table Click 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 document.getElementById('userTable').addEventListener('click', async (e) => {
   const toggleId = e.target.getAttribute('data-user-toggle');
   const toggleNext = e.target.getAttribute('data-user-next');
@@ -2022,7 +2086,7 @@ document.getElementById('userTable').addEventListener('click', async (e) => {
   }
 });
 
-// ─── Pagination ────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Pagination 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 document.getElementById('invPrev').addEventListener('click', () => { if (S.invPage > 1) loadInventory(S.invPage - 1); });
 document.getElementById('invNext').addEventListener('click', () => { if (S.invPage < Math.max(1, Math.ceil(S.invTotal / S.invLimit))) loadInventory(S.invPage + 1); });
 document.getElementById('aucPrev').addEventListener('click', () => { if (S.aucPage > 1) loadAuction(S.aucPage - 1); });
@@ -2034,13 +2098,14 @@ document.getElementById('orderNext').addEventListener('click', () => { if (S.ord
 document.getElementById('userPrev').addEventListener('click', () => { if (S.userPage > 1) loadUsers(S.userPage - 1); });
 document.getElementById('userNext').addEventListener('click', () => { if (S.userPage < Math.max(1, Math.ceil(S.userTotal / S.userLimit))) loadUsers(S.userPage + 1); });
 
-// ─── Sidebar toggle ───────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Sidebar toggle 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 document.getElementById('sidebarToggle')?.addEventListener('click', () => {
   document.querySelector('.sidebar')?.classList.toggle('open');
 });
 
-// ─── Missing helper aliases (called from inline onclick) ─────────────────────
+// 鈹€鈹€鈹€ Missing helper aliases (called from inline onclick) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 function hideInventoryForm() { hideCarForm(); }
 
-// ─── Start ─────────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Start 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 bootstrap();
+

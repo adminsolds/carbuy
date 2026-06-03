@@ -51,6 +51,8 @@ const emptyStatusSteps = () => ({
   active_step: ''
 });
 
+const ORDER_PROCESSING_LABEL = 'Order Processing';
+
 const normalizeActiveStep = (value) => {
   const step = typeof value === 'string' ? value.trim().toLowerCase() : '';
   if (!step) return '';
@@ -71,6 +73,7 @@ const normalizeStatusSteps = (value, { allowPartial = false } = {}) => {
   }
 
   const output = allowPartial ? {} : emptyStatusSteps();
+  let lastFilledStep = '';
   for (const key of STATUS_STEP_KEYS) {
     if (allowPartial && !Object.prototype.hasOwnProperty.call(value, key)) continue;
     const raw = value[key];
@@ -79,6 +82,9 @@ const normalizeStatusSteps = (value, { allowPartial = false } = {}) => {
       throw new Error(`${key} must be ${STATUS_STEP_MAX_LEN} characters or less.`);
     }
     output[key] = text;
+    if (text) {
+      lastFilledStep = key;
+    }
   }
   if (allowPartial) {
     if (Object.prototype.hasOwnProperty.call(value, 'active_step')) {
@@ -86,25 +92,28 @@ const normalizeStatusSteps = (value, { allowPartial = false } = {}) => {
       if (normalizedActiveStep === null) {
         throw new Error('active_step must be one of step1, step2, step3, step4, step5, step6.');
       }
-      output.active_step = normalizedActiveStep;
     }
+    output.active_step = lastFilledStep;
   } else {
     const normalizedActiveStep = normalizeActiveStep(value.active_step);
     if (normalizedActiveStep === null) {
       throw new Error('active_step must be one of step1, step2, step3, step4, step5, step6.');
     }
-    output.active_step = normalizedActiveStep || '';
-    if (!output.active_step) {
-      for (let i = STATUS_STEP_KEYS.length - 1; i >= 0; i -= 1) {
-        const key = STATUS_STEP_KEYS[i];
-        if (output[key]) {
-          output.active_step = key;
-          break;
-        }
-      }
-    }
+    output.active_step = lastFilledStep || '';
   }
   return output;
+};
+
+const normalizePaymentConfirmed = (value, defaultValue = true) => {
+  if (value === undefined || value === null || value === '') return defaultValue;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['true', '1', 'yes', 'paid', 'confirmed'].includes(normalized)) return true;
+    if (['false', '0', 'no', 'unpaid', 'pending'].includes(normalized)) return false;
+  }
+  return defaultValue;
 };
 
 const resolveOrderStatusFromSteps = (statusSteps) => {
@@ -174,6 +183,7 @@ const normalizeText = (value) => {
 };
 
 const CUSTOM_VEHICLE_DETAIL_FIELDS = {
+  vehicle_name: 120,
   brand: 80,
   model: 80,
   year: 20,
@@ -207,6 +217,8 @@ const buildCustomVehicleLabel = (customVehicle, details) => {
   const direct = normalizeText(customVehicle);
   if (direct) return direct.slice(0, 255);
   if (!details || typeof details !== 'object' || Array.isArray(details)) return null;
+  const vehicleName = typeof details.vehicle_name === 'string' ? details.vehicle_name.trim() : '';
+  if (vehicleName) return vehicleName.slice(0, 255);
   const brand = typeof details.brand === 'string' ? details.brand.trim() : '';
   const model = typeof details.model === 'string' ? details.model.trim() : '';
   const year = typeof details.year === 'string' ? details.year.trim() : '';
@@ -252,7 +264,13 @@ const ensureBuyerUser = async ({ buyerName, buyerEmail, buyerPhone, fallbackUser
 };
 
 // ─── Helper: serialize order ─────────────────────────────────────────────────
-const serializeOrder = (order) => ({
+const serializeOrder = (order) => {
+  const paymentConfirmed = normalizePaymentConfirmed(order.payment_confirmed, true);
+  const statusLabel = paymentConfirmed
+    ? String(order.status || 'pending').replace(/_/g, ' ')
+    : ORDER_PROCESSING_LABEL;
+
+  return ({
   id: order.id,
   order_no: order.order_no,
   order_type: order.order_type,
@@ -271,7 +289,10 @@ const serializeOrder = (order) => ({
   status_steps: normalizeStatusSteps(order.status_steps),
   amount: order.amount,
   deposit_paid: order.deposit_paid,
+  payment_confirmed: paymentConfirmed,
   status: order.status,
+  status_label: statusLabel,
+  can_edit_status_steps: paymentConfirmed,
   buyer_name: order.buyer_name,
   buyer_email: order.buyer_email,
   buyer_phone: order.buyer_phone,
@@ -284,26 +305,30 @@ const serializeOrder = (order) => ({
   user: order.user ? {
     id: order.user.id,
     name: order.user.name,
-    email: order.user.email
+    email: order.user.email,
+    ic_passport: order.user.ic_passport || null
   } : null,
   car: order.car ? {
     id: order.car.id,
+    vehicle_name: order.car.vehicle_name || null,
     brand: order.car.brand,
     model: order.car.model,
     year: order.car.year,
-    price: order.car.price
+    price: order.car.price,
+    images: Array.isArray(order.car.images) ? order.car.images : []
   } : null,
   agent: order.agent ? {
     id: order.agent.id,
     code: order.agent.code,
     name: order.agent.name
   } : null
-});
+  });
+};
 
 // ─── POST /api/orders — Create order (frontend: buy a car) ─────────────────────
 router.post('/', auth, async (req, res) => {
   try {
-    const { car_id, order_type, custom_order_type, amount, delivery_address, agent_id, images, status_steps } = req.body;
+    const { car_id, order_type, custom_order_type, amount, delivery_address, agent_id, images, status_steps, payment_confirmed } = req.body;
     const user_id = req.user.id;
 
     if (!car_id || !amount) {
@@ -339,6 +364,7 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ error: validationError.message });
     }
     const resolvedOrderStatus = resolveOrderStatusFromSteps(resolvedStatusSteps) || 'pending';
+    const resolvedPaymentConfirmed = normalizePaymentConfirmed(payment_confirmed, true);
 
     const order = await Order.create({
       order_no: generateOrderNo(),
@@ -353,6 +379,7 @@ router.post('/', auth, async (req, res) => {
       status_steps: resolvedStatusSteps,
       amount: Number(amount),
       deposit_paid: 0,
+      payment_confirmed: resolvedPaymentConfirmed,
       status: resolvedOrderStatus,
       buyer_name: user.name,
       buyer_email: user.email,
@@ -365,8 +392,8 @@ router.post('/', auth, async (req, res) => {
 
     const fullOrder = await Order.findByPk(order.id, {
       include: [
-        { model: User, as: 'user', attributes: ['id', 'name', 'email'] },
-        { model: Car, as: 'car', attributes: ['id', 'brand', 'model', 'year', 'price'] },
+        { model: User, as: 'user', attributes: ['id', 'name', 'email', 'ic_passport'] },
+        { model: Car, as: 'car', attributes: ['id', 'vehicle_name', 'brand', 'model', 'year', 'price', 'images'] },
         { model: Agent, as: 'agent', attributes: ['id', 'code', 'name'] }
       ]
     });
@@ -383,7 +410,7 @@ router.post('/admin', auth, authorize('seller'), async (req, res) => {
   try {
     const {
       car_id, custom_vehicle, order_type, custom_order_type, amount, buyer_name, buyer_email, buyer_phone,
-      delivery_address, agent_id, notes, images, custom_vehicle_details, status_steps, status
+      delivery_address, agent_id, notes, images, custom_vehicle_details, status_steps, status, payment_confirmed
     } = req.body;
 
     const normalizedCustomVehicle = normalizeText(custom_vehicle);
@@ -446,6 +473,7 @@ router.post('/admin', auth, authorize('seller'), async (req, res) => {
       resolvedStatusSteps = buildStatusStepsFromLegacyStatus(status);
     }
     const resolvedOrderStatus = resolveOrderStatusFromSteps(resolvedStatusSteps) || 'pending';
+    const resolvedPaymentConfirmed = normalizePaymentConfirmed(payment_confirmed, true);
 
     const order = await Order.create({
       order_no: generateOrderNo(),
@@ -460,6 +488,7 @@ router.post('/admin', auth, authorize('seller'), async (req, res) => {
       status_steps: resolvedStatusSteps,
       amount: Number(amount),
       deposit_paid: 0,
+      payment_confirmed: resolvedPaymentConfirmed,
       status: resolvedOrderStatus,
       buyer_name: snapshotBuyerName,
       buyer_email: snapshotBuyerEmail,
@@ -475,8 +504,8 @@ router.post('/admin', auth, authorize('seller'), async (req, res) => {
 
     const fullOrder = await Order.findByPk(order.id, {
       include: [
-        { model: User, as: 'user', attributes: ['id', 'name', 'email'] },
-        { model: Car, as: 'car', attributes: ['id', 'brand', 'model', 'year', 'price'] },
+        { model: User, as: 'user', attributes: ['id', 'name', 'email', 'ic_passport'] },
+        { model: Car, as: 'car', attributes: ['id', 'vehicle_name', 'brand', 'model', 'year', 'price', 'images'] },
         { model: Agent, as: 'agent', attributes: ['id', 'code', 'name'] }
       ]
     });
@@ -523,8 +552,8 @@ router.get('/me', auth, async (req, res) => {
     const orders = await Order.findAll({
       where: orderWhere,
       include: [
-        { model: User, as: 'user', attributes: ['id', 'name', 'email'] },
-        { model: Car, as: 'car', attributes: ['id', 'brand', 'model', 'year', 'images'] },
+        { model: User, as: 'user', attributes: ['id', 'name', 'email', 'ic_passport'] },
+        { model: Car, as: 'car', attributes: ['id', 'vehicle_name', 'brand', 'model', 'year', 'images'] },
         { model: Agent, as: 'agent', attributes: ['id', 'code', 'name'] }
       ],
       order: [['createdAt', 'DESC']]
@@ -614,8 +643,8 @@ router.get('/lookup', async (req, res) => {
     const orders = await Order.findAll({
       where: orderWhere,
       include: [
-        { model: User, as: 'user', attributes: ['id', 'name', 'email'] },
-        { model: Car, as: 'car', attributes: ['id', 'brand', 'model', 'year', 'images'] },
+        { model: User, as: 'user', attributes: ['id', 'name', 'email', 'ic_passport'] },
+        { model: Car, as: 'car', attributes: ['id', 'vehicle_name', 'brand', 'model', 'year', 'images'] },
         { model: Agent, as: 'agent', attributes: ['id', 'code', 'name'] }
       ],
       order: [['createdAt', 'DESC']]
@@ -655,8 +684,8 @@ router.get('/admin/list', auth, authorize('seller', 'agent'), async (req, res) =
     const { count, rows: orders } = await Order.findAndCountAll({
       where,
       include: [
-        { model: User, as: 'user', attributes: ['id', 'name', 'email'] },
-        { model: Car, as: 'car', attributes: ['id', 'brand', 'model', 'year', 'price', 'status'] },
+        { model: User, as: 'user', attributes: ['id', 'name', 'email', 'ic_passport'] },
+        { model: Car, as: 'car', attributes: ['id', 'vehicle_name', 'brand', 'model', 'year', 'price', 'status', 'images'] },
         { model: Agent, as: 'agent', attributes: ['id', 'code', 'name'] }
       ],
       limit: parseInt(limit, 10),
@@ -679,7 +708,7 @@ router.get('/:id', auth, authorize('seller', 'agent'), async (req, res) => {
   try {
     const order = await Order.findByPk(req.params.id, {
       include: [
-        { model: User, as: 'user', attributes: ['id', 'name', 'email', 'phone'] },
+        { model: User, as: 'user', attributes: ['id', 'name', 'email', 'phone', 'ic_passport'] },
         { model: Car, as: 'car' },
         { model: Agent, as: 'agent' }
       ]
@@ -698,26 +727,31 @@ router.put('/:id/status-steps', auth, authorize('seller', 'agent'), agentPermiss
     const order = await Order.findByPk(req.params.id);
     if (!order) return res.status(404).json({ error: 'Order not found.' });
 
-    let nextSteps;
-    try {
-      nextSteps = normalizeStatusSteps(req.body?.status_steps);
-    } catch (validationError) {
-      return res.status(400).json({ error: validationError.message });
-    }
+    const resolvedPaymentConfirmed = normalizePaymentConfirmed(req.body?.payment_confirmed, normalizePaymentConfirmed(order.payment_confirmed, true));
+    const updateData = { payment_confirmed: resolvedPaymentConfirmed };
 
-    const updateData = { status_steps: nextSteps };
-    const nextStatus = resolveOrderStatusFromSteps(nextSteps);
-    if (nextStatus) {
-      updateData.status = nextStatus;
-      if (nextStatus === 'paid' && !order.paid_at) updateData.paid_at = new Date();
-      if (nextStatus === 'completed' && !order.delivered_at) updateData.delivered_at = new Date();
+    if (resolvedPaymentConfirmed) {
+      let nextSteps;
+      try {
+        nextSteps = normalizeStatusSteps(req.body?.status_steps);
+      } catch (validationError) {
+        return res.status(400).json({ error: validationError.message });
+      }
+
+      updateData.status_steps = nextSteps;
+      const nextStatus = resolveOrderStatusFromSteps(nextSteps);
+      if (nextStatus) {
+        updateData.status = nextStatus;
+        if (nextStatus === 'paid' && !order.paid_at) updateData.paid_at = new Date();
+        if (nextStatus === 'completed' && !order.delivered_at) updateData.delivered_at = new Date();
+      }
     }
     await order.update(updateData);
 
     const updated = await Order.findByPk(order.id, {
       include: [
-        { model: User, as: 'user', attributes: ['id', 'name', 'email'] },
-        { model: Car, as: 'car', attributes: ['id', 'brand', 'model', 'year', 'price'] },
+        { model: User, as: 'user', attributes: ['id', 'name', 'email', 'ic_passport'] },
+        { model: Car, as: 'car', attributes: ['id', 'vehicle_name', 'brand', 'model', 'year', 'price', 'images'] },
         { model: Agent, as: 'agent', attributes: ['id', 'code', 'name'] }
       ]
     });
@@ -763,8 +797,8 @@ router.put('/:id/status', auth, authorize('seller', 'agent'), agentPermission('u
 
     const updated = await Order.findByPk(order.id, {
       include: [
-        { model: User, as: 'user', attributes: ['id', 'name', 'email'] },
-        { model: Car, as: 'car', attributes: ['id', 'brand', 'model', 'year', 'price'] },
+        { model: User, as: 'user', attributes: ['id', 'name', 'email', 'ic_passport'] },
+        { model: Car, as: 'car', attributes: ['id', 'vehicle_name', 'brand', 'model', 'year', 'price', 'images'] },
         { model: Agent, as: 'agent', attributes: ['id', 'code', 'name'] }
       ]
     });
@@ -784,7 +818,7 @@ router.put('/:id', auth, authorize('seller'), async (req, res) => {
 
     const {
       buyer_name, buyer_email, buyer_phone, amount, deposit_paid,
-      agent_id, delivery_address, notes, custom_vehicle, custom_order_type, images, status_steps, custom_vehicle_details
+      agent_id, delivery_address, notes, custom_vehicle, custom_order_type, images, status_steps, custom_vehicle_details, payment_confirmed
     } = req.body;
 
     const nextBuyerNameInput = buyer_name !== undefined ? normalizeText(buyer_name) : order.buyer_name;
@@ -824,6 +858,7 @@ router.put('/:id', auth, authorize('seller'), async (req, res) => {
       ? buildCustomVehicleLabel(custom_vehicle, resolvedCustomVehicleDetails)
       : buildCustomVehicleLabel(order.custom_vehicle, resolvedCustomVehicleDetails);
     const resolvedOrderStatus = resolveOrderStatusFromSteps(resolvedStatusSteps);
+    const resolvedPaymentConfirmed = normalizePaymentConfirmed(payment_confirmed, normalizePaymentConfirmed(order.payment_confirmed, true));
 
     const updateData = {
       user_id: linkedUser.id,
@@ -836,6 +871,7 @@ router.put('/:id', auth, authorize('seller'), async (req, res) => {
       images: images !== undefined ? normalizeImageUrls(images, 5) : (Array.isArray(order.images) ? order.images : []),
       amount: amount !== undefined ? Number(amount) : order.amount,
       deposit_paid: deposit_paid !== undefined ? Number(deposit_paid) : order.deposit_paid,
+      payment_confirmed: resolvedPaymentConfirmed,
       agent_id: agent_id !== undefined ? (agent_id ? Number(agent_id) : null) : order.agent_id,
       delivery_address: delivery_address !== undefined ? normalizeText(delivery_address) : order.delivery_address,
       notes: notes !== undefined ? normalizeText(notes) : order.notes,
@@ -851,8 +887,8 @@ router.put('/:id', auth, authorize('seller'), async (req, res) => {
 
     const updated = await Order.findByPk(order.id, {
       include: [
-        { model: User, as: 'user', attributes: ['id', 'name', 'email'] },
-        { model: Car, as: 'car', attributes: ['id', 'brand', 'model', 'year', 'price'] },
+        { model: User, as: 'user', attributes: ['id', 'name', 'email', 'ic_passport'] },
+        { model: Car, as: 'car', attributes: ['id', 'vehicle_name', 'brand', 'model', 'year', 'price', 'images'] },
         { model: Agent, as: 'agent', attributes: ['id', 'code', 'name'] }
       ]
     });
